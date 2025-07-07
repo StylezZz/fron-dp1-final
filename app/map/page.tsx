@@ -1,6 +1,15 @@
 'use client'
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Search, Plus, Minus, Home, Truck, Package, MapPin, Navigation, Settings, Filter, Eye, EyeOff, Layers, Target, Zap, AlertTriangle, CheckCircle, Clock, Play, Pause, RotateCcw, Maximize, Minimize, List, Grid, Network, Wrench, AlertCircle, Bell, TrendingUp, BarChart3, Activity, Workflow, Zap as Lightning, Users, MapPin as Pin } from 'lucide-react';
+import MapTruck from '../../components/map/MapTruck';
+import MapOrder from '../../components/map/MapOrder';
+import MapWarehouse from '../../components/map/MapWarehouse';
+import MapRoute from '../../components/map/MapRoute';
+import MapZone from '../../components/map/MapZone';
+import MapConnections from '../../components/map/MapConnections';
+import MapGrid from '../../components/map/MapGrid';
+import GlpLogisticAPI from "@/data/glpAPI";
+import { SimulationProvider, useSimulation } from "@/hooks/useSimulation";
 
 // Tipos basados en tu estructura actual
 interface MapPosition {
@@ -70,7 +79,7 @@ interface Zone {
   center: { x: number; y: number };
 }
 
-const ImprovedLogisticsMap: React.FC = () => {
+const MapWithSimulation: React.FC = () => {
   // Estados del mapa
   const [mapPosition, setMapPosition] = useState<MapPosition>({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -417,6 +426,196 @@ const ImprovedLogisticsMap: React.FC = () => {
   const theme = getMapTheme();
   const zones = calculateZones();
 
+  // Estado para simulaciones
+  const [simulaciones, setSimulaciones] = useState<any[]>([]);
+  const [simulacionActiva, setSimulacionActiva] = useState<any | null>(null);
+  const [loadingSimData, setLoadingSimData] = useState(false);
+  const [simOrders, setSimOrders] = useState<any[]>([]);
+  const [simBlockages, setSimBlockages] = useState<any[]>([]);
+  const [simError, setSimError] = useState<string | null>(null);
+  const [simTrucks, setSimTrucks] = useState<any[]>([]);
+
+  // Contexto de simulación
+  const {
+    simulationType, setSimulationType,
+    currentTime, setCurrentTime,
+    status, setStatus,
+    duration,
+    resetSimulation
+  } = useSimulation();
+
+  // Estado para saber si los datos están listos
+  const [datosListos, setDatosListos] = useState(false);
+
+  // Cargar simulaciones del localStorage al montar
+  useEffect(() => {
+    const keys = Object.keys(localStorage).filter(key => key.startsWith('simulacion-'));
+    const loadedSimulations: any[] = [];
+    keys.forEach(key => {
+      const simulationData = localStorage.getItem(key);
+      if (simulationData) {
+        loadedSimulations.push(JSON.parse(simulationData));
+      }
+    });
+    loadedSimulations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setSimulaciones(loadedSimulations);
+  }, []);
+
+  // Cuando se selecciona una simulación, cargar pedidos y bloqueos
+  useEffect(() => {
+    const fetchSimData = async () => {
+      if (!simulacionActiva) return;
+      setLoadingSimData(true);
+      setSimError(null);
+      setDatosListos(false);
+      try {
+        // Usar los campos explícitos si existen
+        let anio = simulacionActiva.anioBase;
+        let mes = simulacionActiva.mesBase;
+        let diaReal = simulacionActiva.diaBase;
+        // Si no existen, intentar usar fechaBase o createdAt
+        if (!anio || !mes || !diaReal) {
+          let fechaStr = simulacionActiva.fechaBase || simulacionActiva.createdAt;
+          if (fechaStr) {
+            const fecha = fechaStr.split("-");
+            anio = parseInt(fecha[0], 10);
+            mes = parseInt(fecha[1], 10);
+            diaReal = parseInt(fecha[2], 10);
+          } else {
+            anio = 2025; mes = 1; diaReal = 1;
+          }
+        }
+        const hora = 0;
+        const minuto = 0;
+        // weeklyOrders espera dia: 1 (literal)
+        const ordersResult = await GlpLogisticAPI.simulation.weeklyOrders({ anio, mes, dia: 1, hora, minuto });
+        setSimOrders(ordersResult?.pedidos || []);
+        // weeklyBlockages puede usar el día real
+        const blockagesResult = await GlpLogisticAPI.simulation.weeklyBlockages({ anio, mes, dia: diaReal, hora, minuto });
+        setSimBlockages(blockagesResult?.bloqueos || []);
+        setDatosListos(true);
+      } catch (err) {
+        setSimError("Error al cargar datos de la simulación");
+      } finally {
+        setLoadingSimData(false);
+      }
+    };
+    if (simulacionActiva) fetchSimData();
+  }, [simulacionActiva]);
+
+  // Bucle de actualización de camiones (rutas) cada tick
+  useEffect(() => {
+    if (!simulacionActiva || status !== "running") return;
+    // Usar los campos explícitos si existen
+    let anio = simulacionActiva.anioBase;
+    let mes = simulacionActiva.mesBase;
+    if (!anio || !mes) {
+      let fechaStr = simulacionActiva.fechaBase || simulacionActiva.createdAt;
+      if (fechaStr) {
+        const fecha = fechaStr.split("-");
+        anio = parseInt(fecha[0], 10);
+        mes = parseInt(fecha[1], 10);
+      } else {
+        anio = 2025; mes = 1;
+      }
+    }
+    const fetchTrucks = async () => {
+      try {
+        // weeklyRoutes espera timer = currentTime, minutosPorIteracion = 10
+        const res = await GlpLogisticAPI.simulation.weeklyRoutes({
+          anio,
+          mes,
+          timer: currentTime,
+          minutosPorIteracion: 10
+        });
+        // Asegurar que siempre sea array
+        setSimTrucks(Array.isArray(res) ? res : (res?.camiones || []));
+      } catch (err) {
+        setSimTrucks([]);
+      }
+    };
+    fetchTrucks();
+  }, [currentTime, simulacionActiva, status]);
+
+  // Función para obtener color según tipo de camión
+  const getTruckColor = (codigo: string) => {
+    if (codigo.startsWith("TA")) return "bg-blue-500";
+    if (codigo.startsWith("TB")) return "bg-green-500";
+    if (codigo.startsWith("TC")) return "bg-yellow-500";
+    if (codigo.startsWith("TD")) return "bg-red-500";
+    return "bg-gray-400";
+  };
+
+  // Al seleccionar una simulación, inicializar el contexto y el algoritmo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleSeleccionarSimulacion = async (sim: any) => {
+    setSimulacionActiva(sim);
+    setSimulationType("semanal");
+    resetSimulation();
+    setStatus("paused"); // Solo inicia cuando el usuario da play
+    setDatosListos(false);
+    // Llamar a weeklyStart solo una vez para inicializar el algoritmo
+    try {
+      await GlpLogisticAPI.simulation.weeklyStart({ tipoSimulacion: 2 });
+    } catch (err) {
+      // Manejar error si es necesario
+    }
+  };
+
+  // Filtrar pedidos y bloqueos activos según el tiempo de simulación
+  const pedidosVisibles = simOrders.filter(p =>
+    p.horaDeInicio <= currentTime && !p.entregado
+  );
+  const bloqueosVisibles = simBlockages.filter(b => {
+    const inicio = new Date(b.fechaInicio).getTime() / 60000;
+    const fin = new Date(b.fechaFin).getTime() / 60000;
+    return inicio <= currentTime && currentTime < fin;
+  });
+
+  // Si no hay simulación activa, mostrar selector
+  if (!simulacionActiva) {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-gray-50">
+        <h2 className="text-2xl font-bold mb-6">Selecciona una simulación para visualizar en el mapa</h2>
+        <div className="w-full max-w-xl space-y-4">
+          {simulaciones.length === 0 ? (
+            <div className="text-gray-500 text-center">No hay simulaciones guardadas. Crea una desde la sección de simulaciones.</div>
+          ) : (
+            simulaciones.map(sim => (
+              <button
+                key={sim.id}
+                className="w-full p-4 bg-white rounded-lg shadow hover:bg-blue-50 border border-gray-200 flex items-center justify-between transition-all"
+                onClick={() => handleSeleccionarSimulacion(sim)}
+              >
+                <div>
+                  <div className="font-semibold text-lg">{sim.name}</div>
+                  <div className="text-sm text-gray-500">{sim.type} • {sim.createdAt}</div>
+                </div>
+                <span className="text-blue-600 font-bold">Ver</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Si está cargando datos de la simulación
+  if (loadingSimData) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-blue-600 font-semibold">Cargando datos de la simulación...</div>
+      </div>
+    );
+  }
+  if (simError) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-red-600 font-semibold">{simError}</div>
+      </div>
+    );
+  }
+
   return (
     <div className={`w-full h-screen relative ${theme.background} overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
       {/* Barra superior moderna */}
@@ -573,7 +772,7 @@ const ImprovedLogisticsMap: React.FC = () => {
             {/* Vista Lista */}
             {orderViewMode === 'list' && (
               <div className="p-4 space-y-3">
-                {filteredOrders.map(order => (
+                {pedidosVisibles.map(order => (
                   <div
                     key={order.id}
                     className={`p-3 rounded-lg border transition-all cursor-pointer hover:shadow-md ${selectedElement === order.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
@@ -610,7 +809,7 @@ const ImprovedLogisticsMap: React.FC = () => {
                   {/* Línea vertical */}
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300"></div>
                   
-                  {filteredOrders
+                  {pedidosVisibles
                     .sort((a, b) => (a.estimatedTime || 0) - (b.estimatedTime || 0))
                     .map((order, index) => (
                       <div key={order.id} className="relative flex items-center mb-6">
@@ -694,7 +893,7 @@ const ImprovedLogisticsMap: React.FC = () => {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Tiempo promedio:</span>
-                      <span className="font-medium">{Math.round(filteredOrders.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / filteredOrders.length)}min</span>
+                      <span className="font-medium">{Math.round(pedidosVisibles.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / pedidosVisibles.length)}min</span>
                     </div>
                   </div>
                   <button
@@ -965,7 +1164,7 @@ const ImprovedLogisticsMap: React.FC = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{filteredOrders.length}</div>
+                  <div className="text-2xl font-bold text-blue-600">{pedidosVisibles.length}</div>
                   <div className="text-xs text-blue-600">Pedidos activos</div>
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg">
@@ -995,13 +1194,13 @@ const ImprovedLogisticsMap: React.FC = () => {
                   <div className="flex justify-between text-sm">
                     <span>Pedidos urgentes:</span>
                     <span className="font-medium text-red-600">
-                      {filteredOrders.filter(o => o.priority === 'urgent').length}
+                      {pedidosVisibles.filter(o => o.priority === 'urgent').length}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Tiempo promedio:</span>
                     <span className="font-medium">
-                      {Math.round(filteredOrders.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / filteredOrders.length)}min
+                      {Math.round(pedidosVisibles.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / pedidosVisibles.length)}min
                     </span>
                   </div>
                 </div>
@@ -1165,7 +1364,7 @@ const ImprovedLogisticsMap: React.FC = () => {
           {searchQuery && (
             <div className="max-h-60 overflow-y-auto space-y-1">
               <div className="text-xs text-gray-500 mb-2">Resultados de búsqueda:</div>
-              {filteredOrders.map(order => (
+              {pedidosVisibles.map(order => (
                 <div
                   key={order.id}
                   className="p-3 hover:bg-blue-50 cursor-pointer rounded-lg border border-gray-100 transition-colors"
@@ -1188,7 +1387,7 @@ const ImprovedLogisticsMap: React.FC = () => {
                 </div>
               ))}
               
-              {filteredOrders.length === 0 && (
+              {pedidosVisibles.length === 0 && (
                 <div className="text-center text-gray-500 py-4">
                   No se encontraron resultados
                 </div>
@@ -1208,35 +1407,11 @@ const ImprovedLogisticsMap: React.FC = () => {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {/* Cuadrícula con tema */}
-        <div
-          className={`absolute inset-0 ${theme.background}`}
-          style={{
-            backgroundSize: `${40 * zoomLevel}px ${40 * zoomLevel}px`,
-            backgroundImage: `
-              linear-gradient(to right, ${theme.gridColor} 1px, transparent 1px),
-              linear-gradient(to bottom, ${theme.gridColor} 1px, transparent 1px)
-            `,
-            backgroundPosition: `${mapPosition.x}px ${mapPosition.y}px`,
-          }}
-        >
-          {/* Líneas principales cada 5 unidades */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundSize: `${40 * 5 * zoomLevel}px ${40 * 5 * zoomLevel}px`,
-              backgroundImage: `
-                linear-gradient(to right, ${theme.mainGridColor} 2px, transparent 2px),
-                linear-gradient(to bottom, ${theme.mainGridColor} 2px, transparent 2px)
-              `,
-              backgroundPosition: `${mapPosition.x}px ${mapPosition.y}px`,
-            }}
-          />
-
+        <MapGrid theme={theme} zoomLevel={zoomLevel} mapPosition={mapPosition}>
           {/* Mapa de calor */}
           {showHeatmap && (
             <div className="absolute inset-0 pointer-events-none">
-              {filteredOrders.map(order => (
+              {pedidosVisibles.map(order => (
                 <div
                   key={`heatmap-${order.id}`}
                   className="absolute rounded-full opacity-30"
@@ -1252,222 +1427,93 @@ const ImprovedLogisticsMap: React.FC = () => {
               ))}
             </div>
           )}
-
           {/* Zonas de pedidos */}
           {showZones && (
-            <div className="absolute inset-0 pointer-events-none">
+            <>
               {zones.map(zone => (
-                <div
+                <MapZone
                   key={zone.id}
-                  className="absolute rounded-full border-2 border-dashed opacity-50"
-                  style={{
-                    left: `${(zone.center.x * 40 + mapPosition.x) * zoomLevel}px`,
-                    bottom: `${(zone.center.y * 40 + mapPosition.y) * zoomLevel}px`,
-                    width: `${120 * zoomLevel}px`,
-                    height: `${120 * zoomLevel}px`,
-                    borderColor: zone.averagePriority > 3 ? '#ef4444' :
-                                zone.averagePriority > 2.5 ? '#f59e0b' :
-                                zone.averagePriority > 2 ? '#eab308' : '#22c55e',
-                    transform: 'translate(-50%, 50%)',
-                    backgroundColor: zone.averagePriority > 3 ? 'rgba(239, 68, 68, 0.1)' :
-                                    zone.averagePriority > 2.5 ? 'rgba(245, 158, 11, 0.1)' :
-                                    zone.averagePriority > 2 ? 'rgba(234, 179, 8, 0.1)' : 'rgba(34, 197, 94, 0.1)'
-                  }}
-                >
-                  <div className="absolute top-2 left-2 text-xs font-medium px-2 py-1 bg-white rounded-full">
-                    {zone.name}
-                  </div>
-                </div>
+                  id={zone.id}
+                  name={zone.name}
+                  center={zone.center}
+                  averagePriority={zone.averagePriority}
+                  orderCount={zone.orders.length}
+                />
               ))}
-            </div>
+            </>
           )}
-        </div>
-
-        {/* Elementos del mapa */}
-        <div
-          className="absolute inset-0"
-          style={{
-            transform: `translate(${mapPosition.x}px, ${mapPosition.y}px) scale(${zoomLevel})`,
-            transformOrigin: "0 0",
-          }}
-        >
-          {/* Conexiones entre camiones y pedidos */}
+          {/* Conexiones */}
           {showConnections && (
-            <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
-              {trucks.map(truck => 
-                truck.assignedOrders?.map(orderId => {
-                  const order = orders.find(o => o.id === orderId);
-                  if (!order) return null;
-                  
-                  return (
-                    <line
-                      key={`connection-${truck.id}-${orderId}`}
-                      x1={truck.location.x * 40}
-                      y1={window.innerHeight - truck.location.y * 40}
-                      x2={order.location.lng * 40}
-                      y2={window.innerHeight - order.location.lat * 40}
-                      stroke="#3b82f6"
-                      strokeWidth="2"
-                      strokeDasharray="5,5"
-                      opacity="0.6"
-                      className={animationState.isPlaying ? 'animate-pulse' : ''}
-                    />
-                  );
-                })
-              )}
-            </svg>
+            <MapConnections trucks={trucks} orders={pedidosVisibles} isAnimating={animationState.isPlaying} />
           )}
-
-          {/* Rutas animadas */}
+          {/* Rutas */}
           {showRoutes && routes.map(route => (
-            <svg
+            <MapRoute
               key={route.id}
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                width: '100%',
-                height: '100%',
-              }}
-            >
-              <defs>
-                <linearGradient id={`gradient-${route.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor={route.color} stopOpacity="1" />
-                  <stop offset="100%" stopColor={route.color} stopOpacity="0.3" />
-                </linearGradient>
-              </defs>
-              <path
-                d={`M ${route.startLocation.x * 40} ${window.innerHeight - route.startLocation.y * 40} 
-                    ${route.waypoints.map(wp => `L ${wp.x * 40} ${window.innerHeight - wp.y * 40}`).join(' ')} 
-                    L ${route.endLocation.x * 40} ${window.innerHeight - route.endLocation.y * 40}`}
-                stroke={`url(#gradient-${route.id})`}
-                strokeWidth="3"
-                fill="none"
-                strokeDasharray="10,5"
-                className={animationState.isPlaying ? 'animate-pulse' : ''}
-              />
-              {/* Indicador de dirección */}
-              <circle
-                cx={route.endLocation.x * 40}
-                cy={window.innerHeight - route.endLocation.y * 40}
-                r="4"
-                fill={route.color}
-                className={animationState.isPlaying ? 'animate-ping' : ''}
-              />
-            </svg>
+              id={route.id}
+              start={route.startLocation}
+              end={route.endLocation}
+              waypoints={route.waypoints}
+              color={route.color}
+              isAnimating={animationState.isPlaying}
+            />
           ))}
-
-          {/* Almacenes mejorados */}
+          {/* Almacenes */}
           {showWarehouses && warehouses.map(warehouse => (
-            <div
+            <MapWarehouse
               key={warehouse.id}
-              className="absolute z-30 group cursor-pointer"
-              style={{
-                left: `${warehouse.location.x * 40}px`,
-                bottom: `${warehouse.location.y * 40}px`,
-                transform: 'translate(-50%, 50%)',
-              }}
-              onClick={() => setSelectedElement(warehouse.id)}
-            >
-              <div className="relative">
-                <div className={`w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center border-3 border-white shadow-xl transition-transform hover:scale-110 ${selectedElement === warehouse.id ? 'ring-4 ring-blue-400 ring-opacity-50' : ''}`}>
-                  <Home size={20} className="text-white" />
-                </div>
-                {/* Indicador de capacidad */}
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center">
-                  <div 
-                    className="w-2 h-2 rounded-full"
-                    style={{ 
-                      backgroundColor: warehouse.currentStock / warehouse.capacity > 0.8 ? '#ef4444' : 
-                                      warehouse.currentStock / warehouse.capacity > 0.5 ? '#f59e0b' : '#10b981'
-                    }}
-                  ></div>
-                </div>
-              </div>
-              <div className="absolute top-12 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap backdrop-blur-sm">
-                <div className="font-semibold">{warehouse.name}</div>
-                <div>Stock: {warehouse.currentStock}/{warehouse.capacity}</div>
-                <div className="text-xs text-gray-300">
-                  Capacidad: {((warehouse.currentStock / warehouse.capacity) * 100).toFixed(1)}%
-                </div>
-              </div>
-            </div>
+              id={warehouse.id}
+              name={warehouse.name}
+              x={warehouse.location.x}
+              y={warehouse.location.y}
+              capacity={warehouse.capacity}
+              currentStock={warehouse.currentStock}
+              selected={selectedElement === warehouse.id}
+              onClick={setSelectedElement}
+            />
           ))}
-
-          {/* Camiones mejorados */}
-          {showTrucks && trucks.map(truck => (
-            <div
-              key={truck.id}
-              className="absolute z-25 group cursor-pointer"
-              style={{
-                left: `${truck.location.x * 40}px`,
-                bottom: `${truck.location.y * 40}px`,
-                transform: 'translate(-50%, 50%)',
-              }}
-              onClick={() => setSelectedElement(truck.id)}
-            >
-              <div className="relative">
-                <div className={`w-8 h-8 rounded-full ${getStatusColor(truck.status)} border-3 border-white shadow-lg flex items-center justify-center transition-all hover:scale-110 ${selectedElement === truck.id ? 'ring-4 ring-blue-400 ring-opacity-50' : ''} ${animationState.isPlaying && truck.status === 'in_route' ? 'animate-bounce' : ''}`}>
-                  <Truck size={14} className="text-white" />
-                </div>
-                {/* Indicador de carga */}
-                {truck.currentLoad > 0 && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full border border-white flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                  </div>
-                )}
-                {/* Indicador de avería */}
-                {truck.status === 'broken' && (
-                  <div className="absolute -top-2 -left-2">
-                    <Lightning size={12} className="text-red-500 animate-pulse" />
-                  </div>
-                )}
+          {/* Camiones simulados */}
+          {showTrucks && Array.isArray(simTrucks) && simTrucks.map(truck => {
+            // Buscar el nodo de la ruta donde el tiempo actual está entre tiempoInicio y tiempoFin
+            const nodoActual = truck.route?.find((nodo: any) => nodo.tiempoInicio <= currentTime && currentTime < nodo.tiempoFin) || truck.ubicacionActual;
+            if (!nodoActual) return null;
+            return (
+              <div
+                key={truck.id}
+                className={`absolute z-25 group cursor-pointer ${getTruckColor(truck.codigo)}`}
+                style={{
+                  left: `${nodoActual.x * 40}px`,
+                  bottom: `${nodoActual.y * 40}px`,
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, 50%)',
+                }}
+                title={truck.codigo}
+              >
+                {/* Puedes agregar tooltip o info adicional aquí */}
               </div>
-              <div className="absolute top-10 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap backdrop-blur-sm">
-                <div className="font-semibold">Camión {truck.id}</div>
-                <div>Carga: {truck.currentLoad}/{truck.capacity}kg</div>
-                <div>Estado: {truck.status}</div>
-                <div>Riesgo: {truck.breakdownRisk}%</div>
-                <div className="text-xs text-gray-300">
-                  Utilización: {((truck.currentLoad / truck.capacity) * 100).toFixed(1)}%
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Pedidos mejorados */}
-          {showOrders && filteredOrders.map(order => (
-            <div
+            );
+          })}
+          {/* Pedidos */}
+          {showOrders && pedidosVisibles.map(order => (
+            <MapOrder
               key={order.id}
-              className="absolute z-20 group cursor-pointer"
-              style={{
-                left: `${order.location.lng * 40}px`,
-                bottom: `${order.location.lat * 40}px`,
-                transform: 'translate(-50%, 50%)',
-              }}
-              onClick={() => setSelectedElement(order.id)}
-            >
-              <div className="relative">
-                <div className={`w-5 h-5 rounded-full ${getPriorityColor(order.priority)} border-2 border-white shadow-lg transition-all hover:scale-125 ${selectedElement === order.id ? 'ring-3 ring-blue-400 ring-opacity-50 scale-125' : ''} ${animationState.isPlaying && order.priority === 'urgent' ? 'animate-pulse' : ''}`}>
-                </div>
-                {/* Indicador de estado */}
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border border-white">
-                  {order.status === 'pending' && <Clock size={8} className="text-gray-600 m-0.5" />}
-                  {order.status === 'assigned' && <AlertTriangle size={8} className="text-blue-600 m-0.5" />}
-                  {order.status === 'in_transit' && <Truck size={8} className="text-purple-600 m-0.5" />}
-                  {order.status === 'delivered' && <CheckCircle size={8} className="text-green-600 m-0.5" />}
-                </div>
-              </div>
-              <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap backdrop-blur-sm">
-                <div className="font-semibold">{order.customer}</div>
-                <div>Volumen: {order.volume}L</div>
-                <div>Estado: {order.status}</div>
-                <div>Prioridad: {order.priority}</div>
-                <div>Zona: {order.zone}</div>
-                <div>ETA: {order.estimatedTime}min</div>
-                <div className="text-xs text-gray-300">ID: {order.id}</div>
-              </div>
-            </div>
+              id={order.id}
+              lat={order.location.lat}
+              lng={order.location.lng}
+              priority={order.priority}
+              status={order.status}
+              customer={order.customer}
+              volume={order.volume}
+              zone={order.zone}
+              estimatedTime={order.estimatedTime}
+              selected={selectedElement === order.id}
+              isAnimating={animationState.isPlaying}
+              onClick={setSelectedElement}
+            />
           ))}
-        </div>
+        </MapGrid>
 
         {/* Barra de información inferior */}
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-white/90 backdrop-blur-md border-t border-gray-200 flex items-center justify-between px-6 text-sm">
@@ -1492,7 +1538,7 @@ const ImprovedLogisticsMap: React.FC = () => {
             </div>
           </div>
           <div className="text-gray-500">
-            Elementos visibles: {(showOrders ? filteredOrders.length : 0) + (showTrucks ? trucks.length : 0) + (showWarehouses ? warehouses.length : 0)}
+            Elementos visibles: {(showOrders ? pedidosVisibles.length : 0) + (showTrucks ? trucks.length : 0) + (showWarehouses ? warehouses.length : 0)}
           </div>
         </div>
       </div>
@@ -1578,8 +1624,33 @@ const ImprovedLogisticsMap: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Controles de simulación y progreso */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 bg-white/90 rounded-xl shadow-lg px-6 py-3">
+        <button
+          onClick={() => setStatus(status === "running" ? "paused" : "running")}
+          className={`px-4 py-2 rounded-lg font-bold ${status === "running" ? "bg-yellow-400" : "bg-green-500 text-white"}`}
+          disabled={!datosListos}
+        >
+          {status === "running" ? "Pausar" : "Reanudar"}
+        </button>
+        <div className="text-lg font-semibold">Tiempo: {Math.floor(currentTime / 60)}h {currentTime % 60}m / {duration / 60}h</div>
+        <div className="w-64 bg-gray-200 rounded-full h-3">
+          <div
+            className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+            style={{ width: `${(currentTime / duration) * 100}%` }}
+          ></div>
+        </div>
+      </div>
     </div>
   );
 };
+
+// Exportar el mapa envuelto en el provider
+const ImprovedLogisticsMap: React.FC = () => (
+  <SimulationProvider>
+    <MapWithSimulation />
+  </SimulationProvider>
+);
 
 export default ImprovedLogisticsMap;

@@ -2,6 +2,20 @@ import { th } from "date-fns/locale";
 
 const API_BASE_URL = "http://localhost:8080/api";
 
+/**
+ * Lógica de la simulación
+ * 1.- Crear la simulación con GlpLogiscticAPI.simulation.inicialize(...)
+ * 2.- Cargar los pedidos (Caso semanal) GlpLogiscticAPI.simulation.weeklyOrders(...)
+ * 3.- Cargar los bloqueos (Caso semanal) GlpLogiscticAPI.simulation.weeklyBlockages(...)
+ * 4.- Iniciar Algoritmo con Simulacion Semanal GlpLogiscticAPI.simulation.weeklyStart(...)
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
+
 const GlpLogisticAPI = {
   simulation: {
     async inicialize(params: {
@@ -24,7 +38,7 @@ const GlpLogisticAPI = {
       });
 
       const response = await fetch(
-        `${API_BASE_URL}/simulation/iniciar-simulacion?${queryParams.toString()}`,
+        `${API_BASE_URL}/simulacion/inicializar-simulacion?${queryParams.toString()}`,
         {
           method: "POST",
           headers: {
@@ -34,6 +48,110 @@ const GlpLogisticAPI = {
         }
       );
       return response.json();
+    },
+    async weeklyOrders(params:{
+      anio:number;
+      mes:number;
+      dia:1;
+      hora:number;
+      minuto:number;
+    }){
+      try{
+        const queryParams = new URLSearchParams({
+          anio: params.anio.toString(),
+          mes: params.mes.toString(),
+          dia: params.dia.toString(),
+          hora: params.hora.toString(),
+          minuto: params.minuto.toString(),
+        });
+        const response = await fetch(`${API_BASE_URL}/simulacion/pedidos/semanal?${queryParams.toString()}`);
+        const result = await response.json();
+        return result;
+      }catch(error){
+        return {
+          success: false,
+          mensaje: error instanceof Error ? error.message : "Error desconocido",
+          status: 500,
+        };
+      }
+    },
+    async weeklyBlockages(params:{
+      anio:number;
+      mes:number;
+      dia:number;
+      hora:number;
+      minuto:number;
+    }){
+      try{
+        const queryParams = new URLSearchParams({
+          anio: params.anio.toString(),
+          mes: params.mes.toString(),
+          dia: params.dia.toString(),
+          hora: params.hora.toString(),
+          minuto: params.minuto.toString(),
+        });
+        const response = await fetch(`${API_BASE_URL}/simulacion/bloqueos/semanal?${queryParams.toString()}`);
+        const result = await response.json();
+        return result;
+      }catch(error){
+        return {
+          success: false,
+          mensaje: error instanceof Error ? error.message : "Error desconocido",
+          status: 500,
+        };
+      }
+    },
+    async weeklyStart(params:{
+      tipoSimulacion: number;
+    }){
+      try{
+        const queryParams = new URLSearchParams({
+          tipoSimulacion: params.tipoSimulacion.toString(),
+        });
+        const response = await fetch(`${API_BASE_URL}/aco/inicializar?${queryParams.toString()}`,{
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const result = await response.json();
+        return result;
+      }catch(error){
+        return {
+          success: false,
+          mensaje: error instanceof Error ? error.message : "Error desconocido",
+          status: 500,
+        };
+      }
+    },
+    async weeklyRoutes(params:{
+      anio: number;
+      mes: number;
+      timer: number;
+      minutosPorIteracion: number;
+    }){
+      try{
+        const queryParams = new URLSearchParams({
+          anio: params.anio.toString(),
+          mes: params.mes.toString(),
+          timer: params.timer.toString(),
+          minutosPorIteracion: params.minutosPorIteracion.toString(),
+        });
+        const response = await fetch(`${API_BASE_URL}/aco/simulacionRuta/semanal?${queryParams.toString()}`,{
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        const result = await response.json();
+        return result;
+      }catch(error){
+        return {
+          success: false,
+          mensaje: error instanceof Error ? error.message : "Error desconocido",
+          status: 500,
+        };
+      }
     },
   },
   upload: {

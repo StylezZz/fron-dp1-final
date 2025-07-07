@@ -35,11 +35,15 @@ interface SimulationItem {
   startTime: string
   estimatedEnd: string
   createdAt: string
+  anioBase?: number
+  mesBase?: number
+  diaBase?: number
 }
 
 export default function SimulationPage() {
   const [activeTab, setActiveTab] = useState("simulations")
   const [simulations, setSimulations] = useState<SimulationItem[]>([])
+  const [simulationDates, setSimulationDates] = useState<{[key: string]: string}>({});
 
   const [ordersFiles,setOrdersFiles] = useState<any[]>([])
   const [blockagesFiles,setBlockagesFiles] = useState<any[]>([])
@@ -146,15 +150,39 @@ export default function SimulationPage() {
     }
   }
 
-  const saveSimulacion = (simulacionNueva: SimulationItem) => {
+  const saveSimulacion = async (simulacionNueva: SimulationItem, fecha?: Date, hora?: { hour: string, minute: string }) => {
     try {
       // Generar key única usando timestamp + random
       const key = `simulacion-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       simulacionNueva.key = key
-      
       const simulacionString = JSON.stringify(simulacionNueva)
       localStorage.setItem(key, simulacionString)
-      
+
+      // Extraer año, mes, día, hora y minuto de los parámetros
+      let anio = 2025, mes = 1, dia = 1, horaInicial = 0, minutoInicial = 0;
+      if (fecha) {
+        anio = fecha.getFullYear();
+        mes = fecha.getMonth() + 1; // getMonth() es 0-indexed
+        dia = fecha.getDate();
+      }
+      if (hora) {
+        horaInicial = parseInt(hora.hour, 10) || 0;
+        minutoInicial = parseInt(hora.minute, 10) || 0;
+      }
+      // Valores fijos
+      const minutosPorIteracion = 1;
+      const timerSimulacion = 1440;
+
+      await GlpLogisticAPI.simulation.inicialize({
+        anio,
+        mes,
+        dia,
+        horaInicial,
+        minutoInicial,
+        minutosPorIteracion,
+        timerSimulacion
+      });
+
       setSimulations(prev => [simulacionNueva, ...prev])
       return key
     } catch (error) {
@@ -230,20 +258,32 @@ export default function SimulationPage() {
     }
   }
 
-  const handleSimulationComplete = (data: any) => {
+  const handleSimulationComplete = async (data: any) => {
     try {
+      // Extraer la fecha base seleccionada
+      let anio = 2025, mes = 1, dia = 1;
+      if (data.date instanceof Date) {
+        anio = data.date.getFullYear();
+        mes = data.date.getMonth() + 1;
+        dia = data.date.getDate();
+      }
       const newSimulation: SimulationItem = {
         id: Date.now().toString(),
-        name: `Simulación ${getTypeLabel(data.type)} - ${new Date().toLocaleDateString()}`,
+        name: `Simulación ${getTypeLabel(data.type)} - ${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`,
         type: data.type,
         status: "pending",
         progress: 0,
         startTime: "Pendiente",
         estimatedEnd: "Pendiente",
-        createdAt: new Date().toISOString().split('T')[0]
-      }
-      
-      saveSimulacion(newSimulation)
+        createdAt: new Date().toISOString().split('T')[0],
+        // Guardar la fecha base explícitamente
+        anioBase: anio,
+        mesBase: mes,
+        diaBase: dia
+      } as any;
+      // Guardar la fecha base asociada al id de la simulación
+      setSimulationDates(prev => ({ ...prev, [newSimulation.id]: `${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}` }));
+      await saveSimulacion(newSimulation, data.date, data.time)
       setActiveTab("simulations")
     } catch (error) {
       console.error('Error al crear simulación:', error)
@@ -376,6 +416,12 @@ export default function SimulationPage() {
                           <Badge variant="secondary">
                             {getTypeLabel(simulation.type)}
                           </Badge>
+                          {/* Mostrar la fecha base de la simulación */}
+                          {simulationDates[simulation.id] && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Fecha base: {simulationDates[simulation.id]}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
