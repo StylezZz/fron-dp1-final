@@ -1,13 +1,51 @@
-'use client'
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, Plus, Minus, Home, Truck, Package, MapPin, Navigation, Settings, Filter, Eye, EyeOff, Layers, Target, Zap, AlertTriangle, CheckCircle, Clock, Play, Pause, RotateCcw, Maximize, Minimize, List, Grid, Network, Wrench, AlertCircle, Bell, TrendingUp, BarChart3, Activity, Workflow, Zap as Lightning, Users, MapPin as Pin } from 'lucide-react';
-import MapTruck from '../../components/map/MapTruck';
-import MapOrder from '../../components/map/MapOrder';
-import MapWarehouse from '../../components/map/MapWarehouse';
-import MapRoute from '../../components/map/MapRoute';
-import MapZone from '../../components/map/MapZone';
-import MapConnections from '../../components/map/MapConnections';
-import MapGrid from '../../components/map/MapGrid';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import {
+  Search,
+  Plus,
+  Minus,
+  Home,
+  Truck,
+  Package,
+  MapPin,
+  Navigation,
+  Settings,
+  Filter,
+  Eye,
+  EyeOff,
+  Layers,
+  Target,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Play,
+  Pause,
+  RotateCcw,
+  Maximize,
+  Minimize,
+  List,
+  Grid,
+  Network,
+  Wrench,
+  AlertCircle,
+  Bell,
+  TrendingUp,
+  BarChart3,
+  Activity,
+  Workflow,
+  Zap as Lightning,
+  Users,
+  MapPin as Pin,
+} from "lucide-react";
+import MapTruck from "../../components/map/MapTruck";
+import MapOrder from "../../components/map/MapOrder";
+import MapWarehouse from "../../components/map/MapWarehouse";
+import MapRoute from "../../components/map/MapRoute";
+import MapZone from "../../components/map/MapZone";
+import MapConnections from "../../components/map/MapConnections";
+import MapGrid from "../../components/map/MapGrid";
 import GlpLogisticAPI from "@/data/glpAPI";
 import { SimulationProvider, useSimulation } from "@/hooks/useSimulation";
 
@@ -20,8 +58,8 @@ interface MapPosition {
 interface Order {
   id: string;
   location: { lat: number; lng: number };
-  status: 'pending' | 'assigned' | 'in_transit' | 'delivered';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: "pending" | "assigned" | "in_transit" | "delivered";
+  priority: "low" | "medium" | "high" | "urgent";
   customer: string;
   volume: number;
   assignedTruck?: string;
@@ -40,7 +78,7 @@ interface Warehouse {
 interface Truck {
   id: string;
   location: { x: number; y: number };
-  status: 'available' | 'in_route' | 'loading' | 'maintenance' | 'broken';
+  status: "available" | "in_route" | "loading" | "maintenance" | "broken";
   capacity: number;
   currentLoad: number;
   route?: { x: number; y: number }[];
@@ -66,7 +104,7 @@ interface AnimationState {
 
 interface Notification {
   id: string;
-  type: 'warning' | 'error' | 'success' | 'info';
+  type: "warning" | "error" | "success" | "info";
   message: string;
   timestamp: number;
 }
@@ -85,11 +123,11 @@ const MapWithSimulation: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [mapTheme, setMapTheme] = useState<'light' | 'dark' | 'satellite'>('light');
-  
+  const [mapTheme, setMapTheme] = useState<"light" | "dark" | "satellite">("light");
+
   // Estados de visualización avanzados
   const [showOrders, setShowOrders] = useState(true);
   const [showTrucks, setShowTrucks] = useState(true);
@@ -98,24 +136,26 @@ const MapWithSimulation: React.FC = () => {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const [showZones, setShowZones] = useState(false);
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
   // Estados de animación y tiempo real
   const [animationState, setAnimationState] = useState<AnimationState>({
     isPlaying: false,
     speed: 1,
-    currentTime: 0
+    currentTime: 0,
   });
-  
+
   // Estados de panel
   const [showControlPanel, setShowControlPanel] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [showMetrics, setShowMetrics] = useState(false);
   const [showOrderPanel, setShowOrderPanel] = useState(false);
   const [showFleetPanel, setShowFleetPanel] = useState(false);
-  const [orderViewMode, setOrderViewMode] = useState<'list' | 'timeline' | 'zones' | 'network'>('list');
-  
+  const [orderViewMode, setOrderViewMode] = useState<"list" | "timeline" | "zones" | "network">(
+    "list"
+  );
+
   // Estados de notificaciones y averías
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -126,147 +166,256 @@ const MapWithSimulation: React.FC = () => {
 
   // Datos de ejemplo basados en tu estructura (con mejoras)
   const [warehouses] = useState<Warehouse[]>([
-    { id: '1', name: 'Almacén Central', location: { x: 12, y: 8 }, capacity: 1000, currentStock: 750 },
-    { id: '2', name: 'Almacén Norte', location: { x: 25, y: 35 }, capacity: 500, currentStock: 300 },
-    { id: '3', name: 'Almacén Sur', location: { x: 8, y: 5 }, capacity: 300, currentStock: 200 }
+    {
+      id: "1",
+      name: "Almacén Central",
+      location: { x: 12, y: 8 },
+      capacity: 1000,
+      currentStock: 750,
+    },
+    {
+      id: "2",
+      name: "Almacén Norte",
+      location: { x: 25, y: 35 },
+      capacity: 500,
+      currentStock: 300,
+    },
+    { id: "3", name: "Almacén Sur", location: { x: 8, y: 5 }, capacity: 300, currentStock: 200 },
   ]);
 
   const [orders, setOrders] = useState<Order[]>([
-    { id: '1', location: { lat: 20, lng: 15 }, status: 'pending', priority: 'high', customer: 'Cliente A', volume: 100, zone: 'Norte', estimatedTime: 45 },
-    { id: '2', location: { lat: 30, lng: 25 }, status: 'assigned', priority: 'urgent', customer: 'Cliente B', volume: 150, assignedTruck: '1', zone: 'Norte', estimatedTime: 30 },
-    { id: '3', location: { lat: 10, lng: 35 }, status: 'in_transit', priority: 'medium', customer: 'Cliente C', volume: 75, assignedTruck: '2', zone: 'Sur', estimatedTime: 60 },
-    { id: '4', location: { lat: 18, lng: 8 }, status: 'delivered', priority: 'low', customer: 'Cliente D', volume: 200, zone: 'Centro', estimatedTime: 0 },
-    { id: '5', location: { lat: 22, lng: 20 }, status: 'pending', priority: 'urgent', customer: 'Cliente E', volume: 125, zone: 'Norte', estimatedTime: 25 },
-    { id: '6', location: { lat: 14, lng: 12 }, status: 'assigned', priority: 'high', customer: 'Cliente F', volume: 80, assignedTruck: '3', zone: 'Centro', estimatedTime: 40 }
+    {
+      id: "1",
+      location: { lat: 20, lng: 15 },
+      status: "pending",
+      priority: "high",
+      customer: "Cliente A",
+      volume: 100,
+      zone: "Norte",
+      estimatedTime: 45,
+    },
+    {
+      id: "2",
+      location: { lat: 30, lng: 25 },
+      status: "assigned",
+      priority: "urgent",
+      customer: "Cliente B",
+      volume: 150,
+      assignedTruck: "1",
+      zone: "Norte",
+      estimatedTime: 30,
+    },
+    {
+      id: "3",
+      location: { lat: 10, lng: 35 },
+      status: "in_transit",
+      priority: "medium",
+      customer: "Cliente C",
+      volume: 75,
+      assignedTruck: "2",
+      zone: "Sur",
+      estimatedTime: 60,
+    },
+    {
+      id: "4",
+      location: { lat: 18, lng: 8 },
+      status: "delivered",
+      priority: "low",
+      customer: "Cliente D",
+      volume: 200,
+      zone: "Centro",
+      estimatedTime: 0,
+    },
+    {
+      id: "5",
+      location: { lat: 22, lng: 20 },
+      status: "pending",
+      priority: "urgent",
+      customer: "Cliente E",
+      volume: 125,
+      zone: "Norte",
+      estimatedTime: 25,
+    },
+    {
+      id: "6",
+      location: { lat: 14, lng: 12 },
+      status: "assigned",
+      priority: "high",
+      customer: "Cliente F",
+      volume: 80,
+      assignedTruck: "3",
+      zone: "Centro",
+      estimatedTime: 40,
+    },
   ]);
 
   const [trucks, setTrucks] = useState<Truck[]>([
-    { 
-      id: '1', 
-      location: { x: 15, y: 12 }, 
-      status: 'available', 
-      capacity: 500, 
+    {
+      id: "1",
+      location: { x: 15, y: 12 },
+      status: "available",
+      capacity: 500,
       currentLoad: 0,
-      route: [{ x: 15, y: 12 }, { x: 20, y: 15 }, { x: 25, y: 20 }],
+      route: [
+        { x: 15, y: 12 },
+        { x: 20, y: 15 },
+        { x: 25, y: 20 },
+      ],
       assignedOrders: [],
-      lastMaintenance: '2024-01-15',
-      breakdownRisk: 15
+      lastMaintenance: "2024-01-15",
+      breakdownRisk: 15,
     },
-    { 
-      id: '2', 
-      location: { x: 22, y: 28 }, 
-      status: 'in_route', 
-      capacity: 500, 
+    {
+      id: "2",
+      location: { x: 22, y: 28 },
+      status: "in_route",
+      capacity: 500,
       currentLoad: 300,
-      route: [{ x: 22, y: 28 }, { x: 18, y: 25 }, { x: 12, y: 20 }],
-      assignedOrders: ['3'],
-      lastMaintenance: '2024-01-10',
-      breakdownRisk: 25
+      route: [
+        { x: 22, y: 28 },
+        { x: 18, y: 25 },
+        { x: 12, y: 20 },
+      ],
+      assignedOrders: ["3"],
+      lastMaintenance: "2024-01-10",
+      breakdownRisk: 25,
     },
-    { 
-      id: '3', 
-      location: { x: 8, y: 6 }, 
-      status: 'loading', 
-      capacity: 300, 
+    {
+      id: "3",
+      location: { x: 8, y: 6 },
+      status: "loading",
+      capacity: 300,
       currentLoad: 100,
-      route: [{ x: 8, y: 6 }, { x: 12, y: 8 }, { x: 20, y: 15 }],
-      assignedOrders: ['6'],
-      lastMaintenance: '2024-01-20',
-      breakdownRisk: 8
-    }
+      route: [
+        { x: 8, y: 6 },
+        { x: 12, y: 8 },
+        { x: 20, y: 15 },
+      ],
+      assignedOrders: ["6"],
+      lastMaintenance: "2024-01-20",
+      breakdownRisk: 8,
+    },
   ]);
 
   const routes: Route[] = [
     {
-      id: 'route1',
+      id: "route1",
       startLocation: { x: 12, y: 8 },
       endLocation: { x: 20, y: 15 },
-      waypoints: [{ x: 15, y: 10 }, { x: 18, y: 12 }],
-      truckId: '1',
-      color: '#3b82f6'
+      waypoints: [
+        { x: 15, y: 10 },
+        { x: 18, y: 12 },
+      ],
+      truckId: "1",
+      color: "#3b82f6",
     },
     {
-      id: 'route2', 
+      id: "route2",
       startLocation: { x: 25, y: 35 },
       endLocation: { x: 30, y: 25 },
       waypoints: [{ x: 28, y: 30 }],
-      truckId: '2',
-      color: '#ef4444'
-    }
+      truckId: "2",
+      color: "#ef4444",
+    },
   ];
 
   // Función para añadir notificaciones
-  const addNotification = useCallback((type: Notification['type'], message: string) => {
+  const addNotification = useCallback((type: Notification["type"], message: string) => {
     const notification: Notification = {
       id: Date.now().toString(),
       type,
       message,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    setNotifications(prev => [notification, ...prev].slice(0, 5));
-    
+    setNotifications((prev) => [notification, ...prev].slice(0, 5));
+
     // Auto-remove después de 5 segundos
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
     }, 5000);
   }, []);
 
   // Función para averiar camión
-  const breakdownTruck = useCallback((truckId: string) => {
-    setTrucks(prev => prev.map(truck => {
-      if (truck.id === truckId) {
-        // Reasignar pedidos automáticamente
-        const affectedOrders = orders.filter(order => order.assignedTruck === truckId);
-        if (affectedOrders.length > 0) {
-          // Buscar camión disponible
-          const availableTruck = prev.find(t => t.id !== truckId && t.status === 'available' && t.currentLoad + affectedOrders.reduce((sum, o) => sum + o.volume, 0) <= t.capacity);
-          
-          if (availableTruck) {
-            // Reasignar pedidos
-            setOrders(prevOrders => prevOrders.map(order => 
-              affectedOrders.includes(order) 
-                ? { ...order, assignedTruck: availableTruck.id, status: 'assigned' as const }
-                : order
-            ));
-            addNotification('warning', `Camión ${truckId} averiado. Pedidos reasignados a Camión ${availableTruck.id}`);
-          } else {
-            // No hay camiones disponibles
-            setOrders(prevOrders => prevOrders.map(order => 
-              affectedOrders.includes(order) 
-                ? { ...order, assignedTruck: undefined, status: 'pending' as const }
-                : order
-            ));
-            addNotification('error', `Camión ${truckId} averiado. No hay camiones disponibles para reasignar ${affectedOrders.length} pedido(s)`);
+  const breakdownTruck = useCallback(
+    (truckId: string) => {
+      setTrucks((prev) =>
+        prev.map((truck) => {
+          if (truck.id === truckId) {
+            // Reasignar pedidos automáticamente
+            const affectedOrders = orders.filter((order) => order.assignedTruck === truckId);
+            if (affectedOrders.length > 0) {
+              // Buscar camión disponible
+              const availableTruck = prev.find(
+                (t) =>
+                  t.id !== truckId &&
+                  t.status === "available" &&
+                  t.currentLoad + affectedOrders.reduce((sum, o) => sum + o.volume, 0) <= t.capacity
+              );
+
+              if (availableTruck) {
+                // Reasignar pedidos
+                setOrders((prevOrders) =>
+                  prevOrders.map((order) =>
+                    affectedOrders.includes(order)
+                      ? { ...order, assignedTruck: availableTruck.id, status: "assigned" as const }
+                      : order
+                  )
+                );
+                addNotification(
+                  "warning",
+                  `Camión ${truckId} averiado. Pedidos reasignados a Camión ${availableTruck.id}`
+                );
+              } else {
+                // No hay camiones disponibles
+                setOrders((prevOrders) =>
+                  prevOrders.map((order) =>
+                    affectedOrders.includes(order)
+                      ? { ...order, assignedTruck: undefined, status: "pending" as const }
+                      : order
+                  )
+                );
+                addNotification(
+                  "error",
+                  `Camión ${truckId} averiado. No hay camiones disponibles para reasignar ${affectedOrders.length} pedido(s)`
+                );
+              }
+            }
+
+            return {
+              ...truck,
+              status: "broken" as const,
+              currentLoad: 0,
+              assignedOrders: [],
+            };
           }
-        }
-        
-        return { 
-          ...truck, 
-          status: 'broken' as const,
-          currentLoad: 0,
-          assignedOrders: []
-        };
-      }
-      return truck;
-    }));
-  }, [orders, addNotification]);
+          return truck;
+        })
+      );
+    },
+    [orders, addNotification]
+  );
 
   // Función para reparar camión
-  const repairTruck = useCallback((truckId: string) => {
-    setTrucks(prev => prev.map(truck => 
-      truck.id === truckId 
-        ? { ...truck, status: 'available' as const, breakdownRisk: 5 }
-        : truck
-    ));
-    addNotification('success', `Camión ${truckId} reparado y disponible`);
-  }, [addNotification]);
+  const repairTruck = useCallback(
+    (truckId: string) => {
+      setTrucks((prev) =>
+        prev.map((truck) =>
+          truck.id === truckId
+            ? { ...truck, status: "available" as const, breakdownRisk: 5 }
+            : truck
+        )
+      );
+      addNotification("success", `Camión ${truckId} reparado y disponible`);
+    },
+    [addNotification]
+  );
 
   // Calcular zonas de pedidos
   const calculateZones = useCallback((): Zone[] => {
     const zoneMap = new Map<string, Order[]>();
-    
-    orders.forEach(order => {
-      const zone = order.zone || 'Sin zona';
+
+    orders.forEach((order) => {
+      const zone = order.zone || "Sin zona";
       if (!zoneMap.has(zone)) {
         zoneMap.set(zone, []);
       }
@@ -277,52 +426,59 @@ const MapWithSimulation: React.FC = () => {
       const center = zoneOrders.reduce(
         (acc, order) => ({
           x: acc.x + order.location.lng,
-          y: acc.y + order.location.lat
+          y: acc.y + order.location.lat,
         }),
         { x: 0, y: 0 }
       );
-      
-      const avgPriority = zoneOrders.reduce((sum, order) => {
-        const priorityValue = { low: 1, medium: 2, high: 3, urgent: 4 }[order.priority];
-        return sum + priorityValue;
-      }, 0) / zoneOrders.length;
+
+      const avgPriority =
+        zoneOrders.reduce((sum, order) => {
+          const priorityValue = { low: 1, medium: 2, high: 3, urgent: 4 }[order.priority];
+          return sum + priorityValue;
+        }, 0) / zoneOrders.length;
 
       return {
-        id: zoneName.toLowerCase().replace(' ', '_'),
+        id: zoneName.toLowerCase().replace(" ", "_"),
         name: zoneName,
         orders: zoneOrders,
         averagePriority: avgPriority,
         center: {
           x: center.x / zoneOrders.length,
-          y: center.y / zoneOrders.length
-        }
+          y: center.y / zoneOrders.length,
+        },
       };
     });
   }, [orders]);
 
   // Manejo de zoom
   const handleZoomIn = useCallback(() => {
-    setZoomLevel(prev => Math.min(prev * 1.2, 3));
+    setZoomLevel((prev) => Math.min(prev * 1.2, 3));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel(prev => Math.max(prev / 1.2, 0.3));
+    setZoomLevel((prev) => Math.max(prev / 1.2, 0.3));
   }, []);
 
   // Manejo de arrastre
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsDragging(true);
-    dragStartRef.current = { x: e.clientX - mapPosition.x, y: e.clientY - mapPosition.y };
-  }, [mapPosition]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX - mapPosition.x, y: e.clientY - mapPosition.y };
+    },
+    [mapPosition]
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (isDragging && dragStartRef.current) {
-      setMapPosition({
-        x: e.clientX - dragStartRef.current.x,
-        y: e.clientY - dragStartRef.current.y
-      });
-    }
-  }, [isDragging]);
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isDragging && dragStartRef.current) {
+        setMapPosition({
+          x: e.clientX - dragStartRef.current.x,
+          y: e.clientY - dragStartRef.current.y,
+        });
+      }
+    },
+    [isDragging]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -340,85 +496,78 @@ const MapWithSimulation: React.FC = () => {
     setIsFullscreen(!isFullscreen);
   }, [isFullscreen]);
 
-  // Funciones de animación
-  const toggleAnimation = useCallback(() => {
-    setAnimationState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
-  }, []);
-
-  const resetAnimation = useCallback(() => {
-    setAnimationState(prev => ({ ...prev, currentTime: 0, isPlaying: false }));
-  }, []);
-
-  // Efectos de animación
-  useEffect(() => {
-    if (animationState.isPlaying) {
-      const interval = setInterval(() => {
-        setAnimationState(prev => ({
-          ...prev,
-          currentTime: (prev.currentTime + prev.speed) % 100
-        }));
-      }, 100);
-      return () => clearInterval(interval);
-    }
-  }, [animationState.isPlaying, animationState.speed]);
-
   // Obtener color basado en prioridad
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case "urgent":
+        return "bg-red-500";
+      case "high":
+        return "bg-orange-500";
+      case "medium":
+        return "bg-yellow-500";
+      case "low":
+        return "bg-green-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
   // Obtener color basado en estado
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-gray-400';
-      case 'assigned': return 'bg-blue-500';
-      case 'in_transit': return 'bg-purple-500';
-      case 'delivered': return 'bg-green-600';
-      case 'available': return 'bg-green-500';
-      case 'loading': return 'bg-yellow-500';
-      case 'maintenance': return 'bg-orange-500';
-      case 'broken': return 'bg-red-600';
-      default: return 'bg-gray-500';
+      case "pending":
+        return "bg-gray-400";
+      case "assigned":
+        return "bg-blue-500";
+      case "in_transit":
+        return "bg-purple-500";
+      case "delivered":
+        return "bg-green-600";
+      case "available":
+        return "bg-green-500";
+      case "loading":
+        return "bg-yellow-500";
+      case "maintenance":
+        return "bg-orange-500";
+      case "broken":
+        return "bg-red-600";
+      default:
+        return "bg-gray-500";
     }
   };
 
   // Filtrar pedidos
-  const filteredOrders = orders.filter(order => {
-    const matchesPriority = filterPriority === 'all' || order.priority === filterPriority;
-    const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
-    const matchesSearch = !searchQuery || order.customer.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredOrders = orders.filter((order) => {
+    const matchesPriority = filterPriority === "all" || order.priority === filterPriority;
+    const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+    const matchesSearch =
+      !searchQuery || order.customer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesPriority && matchesStatus && matchesSearch;
   });
 
   // Obtener tema del mapa
   const getMapTheme = () => {
     switch (mapTheme) {
-      case 'dark':
+      case "dark":
         return {
-          background: 'bg-gray-900',
-          gridColor: '#374151',
-          mainGridColor: '#4b5563',
-          textColor: 'text-white'
+          background: "bg-gray-900",
+          gridColor: "#374151",
+          mainGridColor: "#4b5563",
+          textColor: "text-white",
         };
-      case 'satellite':
+      case "satellite":
         return {
-          background: 'bg-green-900',
-          gridColor: '#065f46', 
-          mainGridColor: '#047857',
-          textColor: 'text-green-100'
+          background: "bg-green-900",
+          gridColor: "#065f46",
+          mainGridColor: "#047857",
+          textColor: "text-green-100",
         };
       default:
         return {
-          background: 'bg-white',
-          gridColor: '#e2e8f0',
-          mainGridColor: '#cbd5e1',
-          textColor: 'text-gray-900'
+          background: "bg-white",
+          gridColor: "#e2e8f0",
+          mainGridColor: "#cbd5e1",
+          textColor: "text-gray-900",
         };
     }
   };
@@ -437,11 +586,14 @@ const MapWithSimulation: React.FC = () => {
 
   // Contexto de simulación
   const {
-    simulationType, setSimulationType,
-    currentTime, setCurrentTime,
-    status, setStatus,
+    simulationType,
+    setSimulationType,
+    currentTime,
+    setCurrentTime,
+    status,
+    setStatus,
     duration,
-    resetSimulation
+    resetSimulation,
   } = useSimulation();
 
   // Estado para saber si los datos están listos
@@ -449,17 +601,66 @@ const MapWithSimulation: React.FC = () => {
 
   // Cargar simulaciones del localStorage al montar
   useEffect(() => {
-    const keys = Object.keys(localStorage).filter(key => key.startsWith('simulacion-'));
+    const keys = Object.keys(localStorage).filter((key) => key.startsWith("simulacion-"));
     const loadedSimulations: any[] = [];
-    keys.forEach(key => {
+    keys.forEach((key) => {
       const simulationData = localStorage.getItem(key);
       if (simulationData) {
         loadedSimulations.push(JSON.parse(simulationData));
       }
     });
-    loadedSimulations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    loadedSimulations.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
     setSimulaciones(loadedSimulations);
   }, []);
+
+  // Función para calcular timer ACO
+  const calcularTimerACO = useCallback((currentTime: number, diaBase: number = 1) => {
+    const diaActual = diaBase + Math.floor(currentTime / 1440);
+    const horaActual = Math.floor((currentTime % 1440) / 60);
+    const minutoActual = currentTime % 60;
+
+    return diaActual * 1440 + horaActual * 60 + minutoActual;
+  }, []);
+
+  // Función unificada de control
+  const toggleSimulation = useCallback(() => {
+    const newStatus = status === "running" ? "paused" : "running";
+
+    // 🔄 Actualizar ambos sistemas simultáneamente
+    setStatus(newStatus);
+    setAnimationState((prev) => ({
+      ...prev,
+      isPlaying: newStatus === "running",
+    }));
+  }, [status, setStatus]);
+
+  // Timer automático para currentTime si cambia el status
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (status === "running" && datosListos) {
+      // ⚡ Timer que avanza cada segundo
+      interval = setInterval(() => {
+        setCurrentTime((prevTime) => {
+          const newTime = prevTime + 10; // Avanza 1 minuto de simulación
+
+          // 🔚 Verificar si llegó al final de la simulación (7 días = 10080 minutos)
+          if (newTime >= duration) {
+            setStatus("finished");
+            return duration;
+          }
+
+          return newTime;
+        });
+      }, 1000); // Cada 1 segundo real = 1 minuto de simulación
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status, datosListos, duration, setCurrentTime, setStatus]);
 
   // Cuando se selecciona una simulación, cargar pedidos y bloqueos
   useEffect(() => {
@@ -475,27 +676,40 @@ const MapWithSimulation: React.FC = () => {
         let diaReal = simulacionActiva.diaBase;
         // Si no existen, intentar usar fechaBase o createdAt
         if (!anio || !mes || !diaReal) {
-          let fechaStr = simulacionActiva.fechaBase || simulacionActiva.createdAt;
+          const fechaStr = simulacionActiva.fechaBase || simulacionActiva.createdAt;
           if (fechaStr) {
             const fecha = fechaStr.split("-");
             anio = parseInt(fecha[0], 10);
             mes = parseInt(fecha[1], 10);
             diaReal = parseInt(fecha[2], 10);
           } else {
-            anio = 2025; mes = 1; diaReal = 1;
+            anio = 2025;
+            mes = 1;
+            diaReal = 1;
           }
         }
         const hora = 0;
         const minuto = 0;
-        // weeklyOrders espera dia: 1 (literal)
-        const ordersResult = await GlpLogisticAPI.simulation.weeklyOrders({ anio, mes, dia: 1, hora, minuto });
+        const ordersResult = await GlpLogisticAPI.simulation.weeklyOrders({
+          anio,
+          mes,
+          dia: diaReal,
+          hora,
+          minuto,
+        });
         setSimOrders(ordersResult?.pedidos || []);
-        // weeklyBlockages puede usar el día real
-        const blockagesResult = await GlpLogisticAPI.simulation.weeklyBlockages({ anio, mes, dia: diaReal, hora, minuto });
+        const blockagesResult = await GlpLogisticAPI.simulation.weeklyBlockages({
+          anio,
+          mes,
+          dia: diaReal,
+          hora,
+          minuto,
+        });
         setSimBlockages(blockagesResult?.bloqueos || []);
         setDatosListos(true);
       } catch (err) {
         setSimError("Error al cargar datos de la simulación");
+        console.error(err);
       } finally {
         setLoadingSimData(false);
       }
@@ -503,39 +717,45 @@ const MapWithSimulation: React.FC = () => {
     if (simulacionActiva) fetchSimData();
   }, [simulacionActiva]);
 
-  // Bucle de actualización de camiones (rutas) cada tick
+  // useEffect para consutlar iterativamente las rutas
   useEffect(() => {
-    if (!simulacionActiva || status !== "running") return;
-    // Usar los campos explícitos si existen
-    let anio = simulacionActiva.anioBase;
-    let mes = simulacionActiva.mesBase;
-    if (!anio || !mes) {
-      let fechaStr = simulacionActiva.fechaBase || simulacionActiva.createdAt;
-      if (fechaStr) {
-        const fecha = fechaStr.split("-");
-        anio = parseInt(fecha[0], 10);
-        mes = parseInt(fecha[1], 10);
-      } else {
-        anio = 2025; mes = 1;
-      }
-    }
-    const fetchTrucks = async () => {
+    const iterarAlgoritmo = async () => {
+      if (!simulacionActiva || status !== "running" || !datosListos) return;
+
+      // 🕐 Solo ejecutar cada 60 minutos de simulación (configurable)
+      if (currentTime % 60 !== 0) return;
+
       try {
-        // weeklyRoutes espera timer = currentTime, minutosPorIteracion = 10
-        const res = await GlpLogisticAPI.simulation.weeklyRoutes({
-          anio,
-          mes,
-          timer: currentTime,
-          minutosPorIteracion: 10
+        const timerACO = calcularTimerACO(currentTime, simulacionActiva.diaBase || 1);
+
+        console.log(
+          `🔄 Iterando ACO - Tiempo: ${Math.floor(currentTime / 1440)}d ${Math.floor(
+            (currentTime % 1440) / 60
+          )}h ${currentTime % 60}m`
+        );
+
+        // 🔥 Llamar a weeklyRoutes que itera el algoritmo
+        const response = await GlpLogisticAPI.simulation.weeklyRoutes({
+          anio: simulacionActiva.anioBase || 2025,
+          mes: simulacionActiva.mesBase || 1,
+          timer: timerACO,
+          minutosPorIteracion: 10,
         });
-        // Asegurar que siempre sea array
-        setSimTrucks(Array.isArray(res) ? res : (res?.camiones || []));
+
+        console.log("🚚 Camiones actualizados:", response?.data?.camiones || []);
+
+        if (response?.data) {
+          setSimTrucks(
+            Array.isArray(response.data) ? response.data : response.data?.camiones || []
+          );
+        }
       } catch (err) {
-        setSimTrucks([]);
+        console.error("Error en iteración ACO:", err);
       }
     };
-    fetchTrucks();
-  }, [currentTime, simulacionActiva, status]);
+
+    iterarAlgoritmo();
+  }, [currentTime, simulacionActiva, status, datosListos, calcularTimerACO]);
 
   // Función para obtener color según tipo de camión
   const getTruckColor = (codigo: string) => {
@@ -546,27 +766,78 @@ const MapWithSimulation: React.FC = () => {
     return "bg-gray-400";
   };
 
-  // Al seleccionar una simulación, inicializar el contexto y el algoritmo
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSeleccionarSimulacion = async (sim: any) => {
-    setSimulacionActiva(sim);
-    setSimulationType("semanal");
     resetSimulation();
-    setStatus("paused"); // Solo inicia cuando el usuario da play
     setDatosListos(false);
-    // Llamar a weeklyStart solo una vez para inicializar el algoritmo
+    setStatus("paused");
+    setSimulationType("semanal");
     try {
-      await GlpLogisticAPI.simulation.weeklyStart({ tipoSimulacion: 2 });
+      await GlpLogisticAPI.simulation.weeklyStart({
+        tipoSimulacion: 2,
+      });
+      setSimulacionActiva(sim);
+      setDatosListos(true);
     } catch (err) {
-      // Manejar error si es necesario
+      console.error("Error al inicializar:", err);
+      setSimError("Error al inicializar la simulación");
     }
   };
 
-  // Filtrar pedidos y bloqueos activos según el tiempo de simulación
-  const pedidosVisibles = simOrders.filter(p =>
-    p.horaDeInicio <= currentTime && !p.entregado
+  // ✅ AGREGAR estas funciones para gestión de averías
+  const registrarAveria = useCallback(
+    async (codigoCamion: string, tipoAveria: number) => {
+      if (!simulacionActiva || status !== "running") return;
+
+      try {
+        const timerACO = calcularTimerACO(currentTime, simulacionActiva.diaBase || 1);
+
+        const averia = {
+          id: Date.now(),
+          turnoAveria: Math.floor((currentTime % 1440) / 480) + 1, // 1, 2, o 3 turnos
+          codigoCamion,
+          tipoAveria: ["LEVE", "MODERADO", "GRAVE"][tipoAveria - 1],
+          descripcion: `Avería en tiempo ${Math.floor(currentTime / 1440)}d ${Math.floor(
+            (currentTime % 1440) / 60
+          )}h`,
+        };
+
+        // 🔥 Forzar actualización inmediata con avería
+        const response = await GlpLogisticAPI.simulation.weeklyRoutes({
+          anio: simulacionActiva.anioBase || 2025,
+          mes: simulacionActiva.mesBase || 1,
+          timer: timerACO,
+          minutosPorIteracion: 60,
+        });
+
+        if (response.success) {
+          setSimTrucks(
+            Array.isArray(response.data) ? response.data : response.data?.camiones || []
+          );
+          addNotification(
+            "warning",
+            `⚠️ Avería ${averia.tipoAveria} registrada en ${codigoCamion}`
+          );
+        }
+      } catch (err) {
+        console.error("Error al registrar avería:", err);
+        addNotification("error", "Error al registrar la avería");
+      }
+    },
+    [currentTime, simulacionActiva, status, addNotification, calcularTimerACO]
   );
-  const bloqueosVisibles = simBlockages.filter(b => {
+
+  // Función para simular avería manual (para testing)
+  const simularAveria = useCallback(
+    (codigoCamion: string) => {
+      const tipoAveria = Math.floor(Math.random() * 3) + 1; // 1, 2, o 3
+      registrarAveria(codigoCamion, tipoAveria);
+    },
+    [registrarAveria]
+  );
+
+  // Filtrar pedidos y bloqueos activos según el tiempo de simulación
+  const pedidosVisibles = simOrders.filter((p) => p.horaDeInicio <= currentTime && !p.entregado);
+  const bloqueosVisibles = simBlockages.filter((b) => {
     const inicio = new Date(b.fechaInicio).getTime() / 60000;
     const fin = new Date(b.fechaFin).getTime() / 60000;
     return inicio <= currentTime && currentTime < fin;
@@ -576,12 +847,17 @@ const MapWithSimulation: React.FC = () => {
   if (!simulacionActiva) {
     return (
       <div className="w-full h-screen flex flex-col items-center justify-center bg-gray-50">
-        <h2 className="text-2xl font-bold mb-6">Selecciona una simulación para visualizar en el mapa</h2>
+        <h2 className="text-2xl font-bold mb-6">
+          Selecciona una simulación para visualizar en el mapa
+        </h2>
         <div className="w-full max-w-xl space-y-4">
+          {/* Selector de simulaciones a ejecutar */}
           {simulaciones.length === 0 ? (
-            <div className="text-gray-500 text-center">No hay simulaciones guardadas. Crea una desde la sección de simulaciones.</div>
+            <div className="text-gray-500 text-center">
+              No hay simulaciones guardadas. Crea una desde la sección de simulaciones.
+            </div>
           ) : (
-            simulaciones.map(sim => (
+            simulaciones.map((sim) => (
               <button
                 key={sim.id}
                 className="w-full p-4 bg-white rounded-lg shadow hover:bg-blue-50 border border-gray-200 flex items-center justify-between transition-all"
@@ -589,7 +865,9 @@ const MapWithSimulation: React.FC = () => {
               >
                 <div>
                   <div className="font-semibold text-lg">{sim.name}</div>
-                  <div className="text-sm text-gray-500">{sim.type} • {sim.createdAt}</div>
+                  <div className="text-sm text-gray-500">
+                    {sim.type} • {sim.createdAt}
+                  </div>
                 </div>
                 <span className="text-blue-600 font-bold">Ver</span>
               </button>
@@ -604,7 +882,9 @@ const MapWithSimulation: React.FC = () => {
   if (loadingSimData) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg text-blue-600 font-semibold">Cargando datos de la simulación...</div>
+        <div className="text-lg text-blue-600 font-semibold">
+          Cargando datos de la simulación...
+        </div>
       </div>
     );
   }
@@ -617,7 +897,11 @@ const MapWithSimulation: React.FC = () => {
   }
 
   return (
-    <div className={`w-full h-screen relative ${theme.background} overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}>
+    <div
+      className={`w-full h-screen relative ${theme.background} overflow-hidden ${
+        isFullscreen ? "fixed inset-0 z-50" : ""
+      }`}
+    >
       {/* Barra superior moderna */}
       <div className="absolute top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
@@ -627,13 +911,15 @@ const MapWithSimulation: React.FC = () => {
             <span>En vivo</span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* Indicador de notificaciones */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`p-2 hover:bg-gray-100 rounded-lg relative ${notifications.length > 0 ? 'text-red-600' : ''}`}
+              className={`p-2 hover:bg-gray-100 rounded-lg relative ${
+                notifications.length > 0 ? "text-red-600" : ""
+              }`}
               title="Notificaciones"
             >
               <Bell size={20} />
@@ -643,7 +929,7 @@ const MapWithSimulation: React.FC = () => {
                 </div>
               )}
             </button>
-            
+
             {/* Panel de notificaciones */}
             {showNotifications && (
               <div className="absolute top-12 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto z-60">
@@ -654,15 +940,20 @@ const MapWithSimulation: React.FC = () => {
                   <div className="p-4 text-center text-gray-500">No hay notificaciones</div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {notifications.map(notification => (
+                    {notifications.map((notification) => (
                       <div key={notification.id} className="p-3">
                         <div className="flex items-start gap-2">
-                          <div className={`w-2 h-2 rounded-full mt-2 ${
-                            notification.type === 'error' ? 'bg-red-500' :
-                            notification.type === 'warning' ? 'bg-yellow-500' :
-                            notification.type === 'success' ? 'bg-green-500' :
-                            'bg-blue-500'
-                          }`}></div>
+                          <div
+                            className={`w-2 h-2 rounded-full mt-2 ${
+                              notification.type === "error"
+                                ? "bg-red-500"
+                                : notification.type === "warning"
+                                ? "bg-yellow-500"
+                                : notification.type === "success"
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }`}
+                          ></div>
                           <div className="flex-1">
                             <p className="text-sm">{notification.message}</p>
                             <p className="text-xs text-gray-500 mt-1">
@@ -678,28 +969,10 @@ const MapWithSimulation: React.FC = () => {
             )}
           </div>
 
-          {/* Controles de animación */}
-          <div className="flex items-center gap-1 bg-white rounded-lg shadow-sm border px-2 py-1">
-            <button
-              onClick={toggleAnimation}
-              className="p-1 hover:bg-gray-100 rounded"
-              title={animationState.isPlaying ? "Pausar" : "Reproducir"}
-            >
-              {animationState.isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            </button>
-            <button
-              onClick={resetAnimation}
-              className="p-1 hover:bg-gray-100 rounded"
-              title="Reiniciar"
-            >
-              <RotateCcw size={16} />
-            </button>
-          </div>
-
           {/* Selector de tema */}
           <select
             value={mapTheme}
-            onChange={(e) => setMapTheme(e.target.value as 'light' | 'dark' | 'satellite')}
+            onChange={(e) => setMapTheme(e.target.value as "light" | "dark" | "satellite")}
             className="px-3 py-1 bg-white border rounded-lg text-sm"
           >
             <option value="light">Claro</option>
@@ -718,336 +991,15 @@ const MapWithSimulation: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel lateral de pedidos INNOVADOR */}
-      {showOrderPanel && (
-        <div className="absolute top-16 left-0 w-96 h-full bg-white/95 backdrop-blur-md border-r border-gray-200 z-40 overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Package size={20} className="text-blue-600" />
-                Gestión de Pedidos
-              </h3>
-              <button
-                onClick={() => setShowOrderPanel(false)}
-                className="p-1 hover:bg-gray-100 rounded"
-              >
-                <EyeOff size={16} />
-              </button>
-            </div>
-            
-            {/* Selector de modo de vista */}
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setOrderViewMode('list')}
-                className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${orderViewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-              >
-                <List size={14} />
-                Lista
-              </button>
-              <button
-                onClick={() => setOrderViewMode('timeline')}
-                className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${orderViewMode === 'timeline' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-              >
-                <Activity size={14} />
-                Línea
-              </button>
-              <button
-                onClick={() => setOrderViewMode('zones')}
-                className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${orderViewMode === 'zones' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-              >
-                <Pin size={14} />
-                Zonas
-              </button>
-              <button
-                onClick={() => setOrderViewMode('network')}
-                className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1 ${orderViewMode === 'network' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-              >
-                <Network size={14} />
-                Red
-              </button>
-            </div>
-          </div>
-
-          <div className="h-full overflow-y-auto pb-20">
-            {/* Vista Lista */}
-            {orderViewMode === 'list' && (
-              <div className="p-4 space-y-3">
-                {pedidosVisibles.map(order => (
-                  <div
-                    key={order.id}
-                    className={`p-3 rounded-lg border transition-all cursor-pointer hover:shadow-md ${selectedElement === order.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}
-                    onClick={() => setSelectedElement(order.id)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${getPriorityColor(order.priority)}`}></div>
-                        <span className="font-medium text-sm">{order.customer}</span>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)} text-white`}>
-                        {order.status}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600 space-y-1">
-                      <div>Vol: {order.volume}L • Zona: {order.zone}</div>
-                      <div>Est: {order.estimatedTime}min</div>
-                      {order.assignedTruck && (
-                        <div className="flex items-center gap-1">
-                          <Truck size={12} />
-                          Camión {order.assignedTruck}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Vista Timeline */}
-            {orderViewMode === 'timeline' && (
-              <div className="p-4">
-                <div className="relative">
-                  {/* Línea vertical */}
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300"></div>
-                  
-                  {pedidosVisibles
-                    .sort((a, b) => (a.estimatedTime || 0) - (b.estimatedTime || 0))
-                    .map((order, index) => (
-                      <div key={order.id} className="relative flex items-center mb-6">
-                        {/* Punto en la línea */}
-                        <div className={`absolute left-2.5 w-3 h-3 rounded-full border-2 border-white ${getPriorityColor(order.priority)}`}></div>
-                        
-                        {/* Contenido */}
-                        <div className="ml-10 bg-white rounded-lg border p-3 shadow-sm flex-1">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium text-sm">{order.customer}</div>
-                              <div className="text-xs text-gray-600">
-                                {order.estimatedTime}min • {order.volume}L
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {order.zone}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Vista Zonas */}
-            {orderViewMode === 'zones' && (
-              <div className="p-4 space-y-4">
-                {zones.map(zone => (
-                  <div key={zone.id} className="bg-white rounded-lg border p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-semibold flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          zone.averagePriority > 3 ? 'bg-red-500' :
-                          zone.averagePriority > 2.5 ? 'bg-orange-500' :
-                          zone.averagePriority > 2 ? 'bg-yellow-500' : 'bg-green-500'
-                        }`}></div>
-                        {zone.name}
-                      </h4>
-                      <span className="text-sm text-gray-600">{zone.orders.length} pedidos</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {zone.orders.slice(0, 3).map(order => (
-                        <div key={order.id} className="text-sm p-2 bg-gray-50 rounded">
-                          <div className="flex justify-between">
-                            <span>{order.customer}</span>
-                            <span className="text-gray-500">{order.volume}L</span>
-                          </div>
-                        </div>
-                      ))}
-                      {zone.orders.length > 3 && (
-                        <div className="text-xs text-center text-gray-500">
-                          +{zone.orders.length - 3} más
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Vista Red */}
-            {orderViewMode === 'network' && (
-              <div className="p-4">
-                <div className="bg-white rounded-lg border p-4 text-center">
-                  <Network size={48} className="mx-auto text-gray-400 mb-3" />
-                  <h4 className="font-medium mb-2">Vista de Red Inteligente</h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Visualiza conexiones entre pedidos, camiones y rutas optimizadas
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Conexiones activas:</span>
-                      <span className="font-medium">{trucks.filter(t => t.assignedOrders?.length).length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Eficiencia promedio:</span>
-                      <span className="font-medium text-green-600">87%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Tiempo promedio:</span>
-                      <span className="font-medium">{Math.round(pedidosVisibles.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / pedidosVisibles.length)}min</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowConnections(!showConnections)}
-                    className="mt-3 w-full py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-                  >
-                    {showConnections ? 'Ocultar' : 'Mostrar'} Conexiones
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Panel de gestión de flota */}
-      {showFleetPanel && (
-        <div className="absolute top-16 right-0 w-80 h-full bg-white/95 backdrop-blur-md border-l border-gray-200 z-40 overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Truck size={20} className="text-green-600" />
-                Gestión de Flota
-              </h3>
-              <button
-                onClick={() => setShowFleetPanel(false)}
-                className="p-1 hover:bg-gray-100 rounded"
-              >
-                <EyeOff size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="h-full overflow-y-auto pb-20 p-4">
-            <div className="space-y-4">
-              {trucks.map(truck => (
-                <div key={truck.id} className="bg-white rounded-lg border p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${getStatusColor(truck.status)}`}></div>
-                      <span className="font-semibold">Camión {truck.id}</span>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full text-white ${getStatusColor(truck.status)}`}>
-                      {truck.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span>Carga:</span>
-                      <span>{truck.currentLoad}/{truck.capacity}kg</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pedidos asignados:</span>
-                      <span>{truck.assignedOrders?.length || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Riesgo de avería:</span>
-                      <span className={`font-medium ${
-                        truck.breakdownRisk! > 30 ? 'text-red-600' :
-                        truck.breakdownRisk! > 15 ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
-                        {truck.breakdownRisk}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Último mant.:</span>
-                      <span className="text-gray-600">{truck.lastMaintenance}</span>
-                    </div>
-                  </div>
-
-                  {/* Barra de progreso de carga */}
-                  <div className="mt-3">
-                    <div className="flex justify-between text-xs text-gray-600 mb-1">
-                      <span>Capacidad utilizada</span>
-                      <span>{((truck.currentLoad / truck.capacity) * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full ${truck.currentLoad / truck.capacity > 0.8 ? 'bg-red-500' : truck.currentLoad / truck.capacity > 0.6 ? 'bg-yellow-500' : 'bg-green-500'}`}
-                        style={{ width: `${(truck.currentLoad / truck.capacity) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Botones de acción */}
-                  <div className="mt-3 flex gap-2">
-                    {truck.status === 'broken' ? (
-                      <button
-                        onClick={() => repairTruck(truck.id)}
-                        className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center justify-center gap-1"
-                      >
-                        <Wrench size={14} />
-                        Reparar
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => breakdownTruck(truck.id)}
-                        className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 flex items-center justify-center gap-1"
-                      >
-                        <AlertCircle size={14} />
-                        Averiar
-                      </button>
-                    )}
-                    <button className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">
-                      <Settings size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Resumen de flota */}
-            <div className="mt-6 bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <BarChart3 size={16} />
-                Resumen de Flota
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Total camiones:</span>
-                  <span className="font-medium">{trucks.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Disponibles:</span>
-                  <span className="font-medium text-green-600">{trucks.filter(t => t.status === 'available').length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>En ruta:</span>
-                  <span className="font-medium text-blue-600">{trucks.filter(t => t.status === 'in_route').length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Averiados:</span>
-                  <span className="font-medium text-red-600">{trucks.filter(t => t.status === 'broken').length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Utilización promedio:</span>
-                  <span className="font-medium">
-                    {((trucks.reduce((sum, t) => sum + (t.currentLoad / t.capacity), 0) / trucks.length) * 100).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Controles flotantes izquierda */}
       <div className="absolute top-20 left-4 z-40 flex flex-col gap-2">
         {/* Controles de navegación */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg p-2 flex flex-col gap-1">
           <button
             onClick={() => setShowSearch(!showSearch)}
-            className={`p-2 hover:bg-blue-100 rounded-lg transition-colors ${showSearch ? 'bg-blue-100 text-blue-600' : ''}`}
+            className={`p-2 hover:bg-blue-100 rounded-lg transition-colors ${
+              showSearch ? "bg-blue-100 text-blue-600" : ""
+            }`}
             title="Buscar"
           >
             <Search size={20} />
@@ -1075,57 +1027,40 @@ const MapWithSimulation: React.FC = () => {
           </button>
         </div>
 
-        {/* Controles de paneles */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg p-2 flex flex-col gap-1">
-          <button
-            onClick={() => setShowOrderPanel(!showOrderPanel)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showOrderPanel ? 'bg-blue-100 text-blue-600' : ''}`}
-            title="Panel de pedidos"
-          >
-            <Package size={20} />
-          </button>
-          <button
-            onClick={() => setShowFleetPanel(!showFleetPanel)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showFleetPanel ? 'bg-green-100 text-green-600' : ''}`}
-            title="Panel de flota"
-          >
-            <Truck size={20} />
-          </button>
-          <button
-            onClick={() => setShowControlPanel(!showControlPanel)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showControlPanel ? 'bg-purple-100 text-purple-600' : ''}`}
-            title="Panel de control"
-          >
-            <Settings size={20} />
-          </button>
-        </div>
-
         {/* Controles de capas */}
         <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg p-2 flex flex-col gap-1">
           <button
             onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showHeatmap ? 'bg-orange-100 text-orange-600' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
+              showHeatmap ? "bg-orange-100 text-orange-600" : ""
+            }`}
             title="Mapa de calor"
           >
             <Zap size={20} />
           </button>
           <button
             onClick={() => setShowConnections(!showConnections)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showConnections ? 'bg-purple-100 text-purple-600' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
+              showConnections ? "bg-purple-100 text-purple-600" : ""
+            }`}
             title="Conexiones"
           >
             <Network size={20} />
           </button>
           <button
             onClick={() => setShowZones(!showZones)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showZones ? 'bg-cyan-100 text-cyan-600' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
+              showZones ? "bg-cyan-100 text-cyan-600" : ""
+            }`}
             title="Zonas"
           >
             <Pin size={20} />
           </button>
           <button
             onClick={() => setShowLegend(!showLegend)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${showLegend ? 'bg-green-100 text-green-600' : ''}`}
+            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
+              showLegend ? "bg-green-100 text-green-600" : ""
+            }`}
             title="Leyenda"
           >
             <Layers size={20} />
@@ -1133,386 +1068,106 @@ const MapWithSimulation: React.FC = () => {
         </div>
       </div>
 
-      {/* Panel de control mejorado (solo mostrar cuando no hay paneles laterales) */}
-      {showControlPanel && !showOrderPanel && !showFleetPanel && (
-        <div className="absolute top-20 right-4 z-40 bg-white/95 backdrop-blur-md rounded-xl shadow-xl p-6 w-80 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg">Centro de Control</h3>
-            <button
-              onClick={() => setShowControlPanel(false)}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              <Eye size={16} />
-            </button>
-          </div>
-          
-          {/* Pestañas */}
-          <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setShowMetrics(!showMetrics)}
-              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${showMetrics ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}
-            >
-              Métricas
-            </button>
-            <button className="flex-1 py-2 px-3 rounded-md text-sm font-medium bg-white shadow-sm">
-              Filtros
-            </button>
-          </div>
-
-          {showMetrics ? (
-            /* Panel de métricas mejorado */
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{pedidosVisibles.length}</div>
-                  <div className="text-xs text-blue-600">Pedidos activos</div>
-                </div>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{trucks.filter(t => t.status !== 'maintenance' && t.status !== 'broken').length}</div>
-                  <div className="text-xs text-green-600">Camiones operativos</div>
-                </div>
-                <div className="bg-purple-50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{warehouses.length}</div>
-                  <div className="text-xs text-purple-600">Almacenes</div>
-                </div>
-                <div className="bg-red-50 p-3 rounded-lg">
-                  <div className="text-2xl font-bold text-red-600">{trucks.filter(t => t.status === 'broken').length}</div>
-                  <div className="text-xs text-red-600">Camiones averiados</div>
-                </div>
-              </div>
-
-              {/* Métricas adicionales */}
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-sm font-medium mb-2">Eficiencia de Flota</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Utilización promedio:</span>
-                    <span className="font-medium">
-                      {((trucks.reduce((sum, t) => sum + (t.currentLoad / t.capacity), 0) / trucks.length) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Pedidos urgentes:</span>
-                    <span className="font-medium text-red-600">
-                      {pedidosVisibles.filter(o => o.priority === 'urgent').length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Tiempo promedio:</span>
-                    <span className="font-medium">
-                      {Math.round(pedidosVisibles.reduce((sum, o) => sum + (o.estimatedTime || 0), 0) / pedidosVisibles.length)}min
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progreso de animación */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progreso de simulación</span>
-                  <span>{animationState.currentTime.toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${animationState.currentTime}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Panel de filtros */
-            <div className="space-y-4">
-              {/* Toggles de elementos con iconos */}
-              <div className="space-y-3">
-                <label className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Package size={16} className="text-blue-600" />
-                    <span>Pedidos</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={showOrders}
-                      onChange={(e) => setShowOrders(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      onClick={() => setShowOrders(!showOrders)}
-                      className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${showOrders ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${showOrders ? 'translate-x-6' : 'translate-x-1'} mt-1`}></div>
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Truck size={16} className="text-green-600" />
-                    <span>Camiones</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={showTrucks}
-                      onChange={(e) => setShowTrucks(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      onClick={() => setShowTrucks(!showTrucks)}
-                      className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${showTrucks ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${showTrucks ? 'translate-x-6' : 'translate-x-1'} mt-1`}></div>
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Home size={16} className="text-purple-600" />
-                    <span>Almacenes</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={showWarehouses}
-                      onChange={(e) => setShowWarehouses(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      onClick={() => setShowWarehouses(!showWarehouses)}
-                      className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${showWarehouses ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${showWarehouses ? 'translate-x-6' : 'translate-x-1'} mt-1`}></div>
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Navigation size={16} className="text-orange-600" />
-                    <span>Rutas</span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      checked={showRoutes}
-                      onChange={(e) => setShowRoutes(e.target.checked)}
-                      className="sr-only"
-                    />
-                    <div
-                      onClick={() => setShowRoutes(!showRoutes)}
-                      className={`w-11 h-6 rounded-full cursor-pointer transition-colors ${showRoutes ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${showRoutes ? 'translate-x-6' : 'translate-x-1'} mt-1`}></div>
-                    </div>
-                  </div>
-                </label>
-              </div>
-
-              {/* Filtros mejorados */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Prioridad</label>
-                  <select
-                    value={filterPriority}
-                    onChange={(e) => setFilterPriority(e.target.value)}
-                    className="w-full p-2 border rounded-lg bg-white"
-                  >
-                    <option value="all">Todas las prioridades</option>
-                    <option value="urgent">🔴 Urgente</option>
-                    <option value="high">🟠 Alta</option>
-                    <option value="medium">🟡 Media</option>
-                    <option value="low">🟢 Baja</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Estado</label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full p-2 border rounded-lg bg-white"
-                  >
-                    <option value="all">Todos los estados</option>
-                    <option value="pending">⏳ Pendiente</option>
-                    <option value="assigned">📋 Asignado</option>
-                    <option value="in_transit">🚛 En tránsito</option>
-                    <option value="delivered">✅ Entregado</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Panel de búsqueda mejorado */}
-      {showSearch && (
-        <div className="absolute top-20 left-20 z-40 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl w-96 border border-gray-200">
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Buscar pedidos, clientes, camiones..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          {searchQuery && (
-            <div className="max-h-60 overflow-y-auto space-y-1">
-              <div className="text-xs text-gray-500 mb-2">Resultados de búsqueda:</div>
-              {pedidosVisibles.map(order => (
-                <div
-                  key={order.id}
-                  className="p-3 hover:bg-blue-50 cursor-pointer rounded-lg border border-gray-100 transition-colors"
-                  onClick={() => {
-                    setSelectedElement(order.id);
-                    setSearchQuery('');
-                    setShowSearch(false);
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{order.customer}</div>
-                      <div className="text-sm text-gray-600">Vol: {order.volume}L</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(order.priority)}`}></div>
-                      <span className="text-xs text-gray-500">{order.status}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {pedidosVisibles.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
-                  No se encontraron resultados
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Contenedor principal del mapa */}
       <div
         ref={mapRef}
         className="absolute inset-0 cursor-grab mt-16"
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
         <MapGrid theme={theme} zoomLevel={zoomLevel} mapPosition={mapPosition}>
-          {/* Mapa de calor */}
-          {showHeatmap && (
-            <div className="absolute inset-0 pointer-events-none">
-              {pedidosVisibles.map(order => (
-                <div
-                  key={`heatmap-${order.id}`}
-                  className="absolute rounded-full opacity-30"
-                  style={{
-                    left: `${(order.location.lng * 40 + mapPosition.x) * zoomLevel}px`,
-                    bottom: `${(order.location.lat * 40 + mapPosition.y) * zoomLevel}px`,
-                    width: `${60 * zoomLevel}px`,
-                    height: `${60 * zoomLevel}px`,
-                    background: `radial-gradient(circle, ${order.priority === 'urgent' ? 'rgba(239, 68, 68, 0.4)' : order.priority === 'high' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(34, 197, 94, 0.4)'} 0%, transparent 70%)`,
-                    transform: 'translate(-50%, 50%)',
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          {/* Zonas de pedidos */}
-          {showZones && (
-            <>
-              {zones.map(zone => (
-                <MapZone
-                  key={zone.id}
-                  id={zone.id}
-                  name={zone.name}
-                  center={zone.center}
-                  averagePriority={zone.averagePriority}
-                  orderCount={zone.orders.length}
-                />
-              ))}
-            </>
-          )}
-          {/* Conexiones */}
-          {showConnections && (
-            <MapConnections trucks={trucks} orders={pedidosVisibles} isAnimating={animationState.isPlaying} />
-          )}
-          {/* Rutas */}
-          {showRoutes && routes.map(route => (
-            <MapRoute
-              key={route.id}
-              id={route.id}
-              start={route.startLocation}
-              end={route.endLocation}
-              waypoints={route.waypoints}
-              color={route.color}
-              isAnimating={animationState.isPlaying}
-            />
-          ))}
           {/* Almacenes */}
-          {showWarehouses && warehouses.map(warehouse => (
-            <MapWarehouse
-              key={warehouse.id}
-              id={warehouse.id}
-              name={warehouse.name}
-              x={warehouse.location.x}
-              y={warehouse.location.y}
-              capacity={warehouse.capacity}
-              currentStock={warehouse.currentStock}
-              selected={selectedElement === warehouse.id}
-              onClick={setSelectedElement}
-            />
-          ))}
-          {/* Camiones simulados */}
-          {showTrucks && Array.isArray(simTrucks) && simTrucks.map(truck => {
-            // Buscar el nodo de la ruta donde el tiempo actual está entre tiempoInicio y tiempoFin
-            const nodoActual = truck.route?.find((nodo: any) => nodo.tiempoInicio <= currentTime && currentTime < nodo.tiempoFin) || truck.ubicacionActual;
-            if (!nodoActual) return null;
-            return (
-              <div
-                key={truck.id}
-                className={`absolute z-25 group cursor-pointer ${getTruckColor(truck.codigo)}`}
-                style={{
-                  left: `${nodoActual.x * 40}px`,
-                  bottom: `${nodoActual.y * 40}px`,
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  transform: 'translate(-50%, 50%)',
-                }}
-                title={truck.codigo}
-              >
-                {/* Puedes agregar tooltip o info adicional aquí */}
-              </div>
-            );
-          })}
+          {showWarehouses &&
+            warehouses.map((warehouse) => (
+              <MapWarehouse
+                key={warehouse.id}
+                id={warehouse.id}
+                name={warehouse.name}
+                x={warehouse.location.x}
+                y={warehouse.location.y}
+                capacity={warehouse.capacity}
+                currentStock={warehouse.currentStock}
+                selected={selectedElement === warehouse.id}
+                onClick={setSelectedElement}
+              />
+            ))}
+          {/* ✅ Camiones simulados ACO corregidos */}
+          {showTrucks &&
+            Array.isArray(simTrucks) &&
+            simTrucks.map((truck) => {
+              // 🔥 Encontrar posición actual basada en currentTime
+              const timerACO = calcularTimerACO(currentTime, simulacionActiva?.diaBase || 1);
+
+              // Buscar el nodo de ruta actual
+              let posicionActual = null;
+              if (truck.route && Array.isArray(truck.route)) {
+                posicionActual = truck.route.find(
+                  (nodo: any) =>
+                    nodo.startTime <= timerACO && timerACO <= (nodo.arriveTime || nodo.endTime)
+                );
+              }
+
+              // Si no hay posición en ruta, usar ubicación actual
+              if (!posicionActual && truck.ubicacionActual) {
+                posicionActual = truck.ubicacionActual;
+              }
+
+              if (!posicionActual) return null;
+
+              return (
+                <div
+                  key={truck.codigo || truck.id}
+                  className={`absolute z-25 group cursor-pointer transition-all duration-300 ${getTruckColor(
+                    truck.codigo
+                  )} border-2 border-white shadow-lg rounded-full`}
+                  style={{
+                    left: `${(posicionActual.x * 40 + mapPosition.x) * zoomLevel}px`,
+                    bottom: `${(posicionActual.y * 40 + mapPosition.y) * zoomLevel}px`,
+                    width: `${24 * zoomLevel}px`,
+                    height: `${24 * zoomLevel}px`,
+                    transform: "translate(-50%, 50%)",
+                  }}
+                  title={`${truck.codigo} - Carga: ${truck.cargaAsignada || 0}/${
+                    truck.carga || truck.capacidadGLP
+                  }`}
+                  onClick={() => setSelectedElement(truck.codigo)}
+                >
+                  {/* Indicador de pedidos asignados */}
+                  {truck.pedidosAsignados?.length > 0 && (
+                    <div className="absolute -top-2 -left-2 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {truck.pedidosAsignados.length}
+                    </div>
+                  )}
+
+                  {/* Indicador de avería */}
+                  {truck.enAveria && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  )}
+                </div>
+              );
+            })}
           {/* Pedidos */}
-          {showOrders && pedidosVisibles.map(order => (
-            <MapOrder
-              key={order.id}
-              id={order.id}
-              lat={order.location.lat}
-              lng={order.location.lng}
-              priority={order.priority}
-              status={order.status}
-              customer={order.customer}
-              volume={order.volume}
-              zone={order.zone}
-              estimatedTime={order.estimatedTime}
-              selected={selectedElement === order.id}
-              isAnimating={animationState.isPlaying}
-              onClick={setSelectedElement}
-            />
-          ))}
+          {showOrders &&
+            pedidosVisibles.map((order) => (
+              <MapOrder
+                key={order.id}
+                id={order.id}
+                lat={order.location.lat}
+                lng={order.location.lng}
+                priority={order.priority}
+                status={order.status}
+                customer={order.customer}
+                volume={order.volume}
+                zone={order.zone}
+                estimatedTime={order.estimatedTime}
+                selected={selectedElement === order.id}
+                isAnimating={animationState.isPlaying}
+                onClick={setSelectedElement}
+              />
+            ))}
         </MapGrid>
 
         {/* Barra de información inferior */}
@@ -1524,21 +1179,20 @@ const MapWithSimulation: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <MapPin size={14} className="text-gray-500" />
-              <span>Pos: ({Math.round(-mapPosition.x / (40 * zoomLevel))}, {Math.round(-mapPosition.y / (40 * zoomLevel))})</span>
+              <span>
+                Pos: ({Math.round(-mapPosition.x / (40 * zoomLevel))},{" "}
+                {Math.round(-mapPosition.y / (40 * zoomLevel))})
+              </span>
             </div>
-            {animationState.isPlaying && (
+            {status === "running" && (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span>Simulación activa</span>
               </div>
             )}
-            <div className="flex items-center gap-2">
-              <TrendingUp size={14} className="text-green-500" />
-              <span>Eficiencia: {((trucks.reduce((sum, t) => sum + (t.currentLoad / t.capacity), 0) / trucks.length) * 100).toFixed(1)}%</span>
-            </div>
           </div>
           <div className="text-gray-500">
-            Elementos visibles: {(showOrders ? pedidosVisibles.length : 0) + (showTrucks ? trucks.length : 0) + (showWarehouses ? warehouses.length : 0)}
+            Camiones: {simTrucks.length} • Pedidos: {pedidosVisibles.length}
           </div>
         </div>
       </div>
@@ -1548,76 +1202,47 @@ const MapWithSimulation: React.FC = () => {
         <div className="absolute bottom-16 left-4 z-40 bg-white/95 backdrop-blur-md rounded-xl shadow-xl p-4 border border-gray-200">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-bold">Leyenda</h4>
-            <button
-              onClick={() => setShowLegend(false)}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
+            <button onClick={() => setShowLegend(false)} className="p-1 hover:bg-gray-100 rounded">
               <EyeOff size={14} />
             </button>
           </div>
           <div className="space-y-3 text-sm">
             <div>
-              <div className="font-medium mb-2">Prioridades</div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-500 rounded-full shadow-sm"></div>
-                  <span>Urgente</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-orange-500 rounded-full shadow-sm"></div>
-                  <span>Alta</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full shadow-sm"></div>
-                  <span>Media</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 rounded-full shadow-sm"></div>
-                  <span>Baja</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="border-t pt-3">
-              <div className="font-medium mb-2">Estados</div>
+              <div className="font-medium mb-2">Camiones</div>
               <div className="grid grid-cols-2 gap-1 text-xs">
                 <div className="flex items-center gap-1">
-                  <Clock size={12} />
-                  <span>Pendiente</span>
+                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                  <span>TA</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <AlertTriangle size={12} />
-                  <span>Asignado</span>
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span>TB</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Truck size={12} />
-                  <span>En tránsito</span>
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span>TC</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <CheckCircle size={12} />
-                  <span>Entregado</span>
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  <span>TD</span>
                 </div>
               </div>
             </div>
 
             <div className="border-t pt-3">
-              <div className="font-medium mb-2">Camiones</div>
-              <div className="grid grid-cols-2 gap-1 text-xs">
+              <div className="font-medium mb-2">Almacenes</div>
+              <div className="grid grid-cols-1 gap-1 text-xs">
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Disponible</span>
+                  <Home size={12} className="text-purple-600" />
+                  <span>Central (12,8)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>En ruta</span>
+                  <Home size={12} className="text-blue-600" />
+                  <span>Norte (42,42)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span>Cargando</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                  <span>Averiado</span>
+                  <Home size={12} className="text-green-600" />
+                  <span>Este (63,3)</span>
                 </div>
               </div>
             </div>
@@ -1625,22 +1250,66 @@ const MapWithSimulation: React.FC = () => {
         </div>
       )}
 
-      {/* Controles de simulación y progreso */}
+      {/* ✅ CONTROLES DE SIMULACIÓN UNIFICADOS */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 bg-white/90 rounded-xl shadow-lg px-6 py-3">
+        {/* ✅ UN SOLO BOTÓN unificado */}
         <button
-          onClick={() => setStatus(status === "running" ? "paused" : "running")}
-          className={`px-4 py-2 rounded-lg font-bold ${status === "running" ? "bg-yellow-400" : "bg-green-500 text-white"}`}
+          onClick={toggleSimulation}
+          className={`px-6 py-3 rounded-lg font-bold text-white transition-all flex items-center gap-2 ${
+            status === "running" ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+          }`}
           disabled={!datosListos}
         >
-          {status === "running" ? "Pausar" : "Reanudar"}
+          {status === "running" ? (
+            <>
+              <Pause size={20} />
+              Pausar
+            </>
+          ) : (
+            <>
+              <Play size={20} />
+              {status === "paused" ? "Reanudar" : "Iniciar"}
+            </>
+          )}
         </button>
-        <div className="text-lg font-semibold">Tiempo: {Math.floor(currentTime / 60)}h {currentTime % 60}m / {duration / 60}h</div>
-        <div className="w-64 bg-gray-200 rounded-full h-3">
-          <div
-            className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-            style={{ width: `${(currentTime / duration) * 100}%` }}
-          ></div>
+
+        {/* ✅ Información de tiempo mejorada */}
+        <div className="text-lg font-semibold">
+          <span className="text-blue-600">Día {Math.floor(currentTime / 1440) + 1}</span>
+          {" • "}
+          <span className="text-green-600">
+            {String(Math.floor((currentTime % 1440) / 60)).padStart(2, "0")}:
+            {String(currentTime % 60).padStart(2, "0")}
+          </span>
         </div>
+
+        {/* ✅ Progreso visual */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Progreso:</span>
+          <div className="w-64 bg-gray-200 rounded-full h-3 relative">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min((currentTime / duration) * 100, 100)}%` }}
+            ></div>
+            <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-white">
+              {((currentTime / duration) * 100).toFixed(1)}%
+            </div>
+          </div>
+          <span className="text-sm text-gray-600">{Math.floor(duration / 1440)} días</span>
+        </div>
+
+        {/* ✅ Botón de reset */}
+        <button
+          onClick={() => {
+            setCurrentTime(0);
+            setStatus("paused");
+            setAnimationState((prev) => ({ ...prev, isPlaying: false, currentTime: 0 }));
+          }}
+          className="px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-all"
+          title="Reiniciar simulación"
+        >
+          <RotateCcw size={16} />
+        </button>
       </div>
     </div>
   );

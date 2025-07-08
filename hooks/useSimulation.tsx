@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import GlpLogisticAPI from "@/data/glpAPI";
 
 export interface SimulationContextType {
   simulationType: string;
@@ -26,7 +27,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status !== "running") return;
     const interval = setInterval(() => {
-      setCurrentTime(prev => {
+      setCurrentTime((prev) => {
         if (prev >= duration) {
           setStatus("finished");
           clearInterval(interval);
@@ -39,20 +40,27 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, [status, minutosPorIteracion]);
 
   // Reset al cambiar de simulación
-  const resetSimulation = () => {
+  const resetSimulation = async () => {
     setCurrentTime(0);
+    await GlpLogisticAPI.simulation.resetSimulation();
     setStatus("paused");
   };
 
   return (
-    <SimulationContext.Provider value={{
-      simulationType, setSimulationType,
-      currentTime, setCurrentTime,
-      status, setStatus,
-      duration,
-      minutosPorIteracion, setMinutosPorIteracion,
-      resetSimulation
-    }}>
+    <SimulationContext.Provider
+      value={{
+        simulationType,
+        setSimulationType,
+        currentTime,
+        setCurrentTime,
+        status,
+        setStatus,
+        duration,
+        minutosPorIteracion,
+        setMinutosPorIteracion,
+        resetSimulation,
+      }}
+    >
       {children}
     </SimulationContext.Provider>
   );
@@ -62,4 +70,4 @@ export function useSimulation(): SimulationContextType {
   const ctx = useContext(SimulationContext);
   if (!ctx) throw new Error("useSimulation debe usarse dentro de SimulationProvider");
   return ctx;
-} 
+}

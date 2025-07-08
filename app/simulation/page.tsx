@@ -1,74 +1,74 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { 
-  PlusCircle, 
-  Rocket, 
-  Play, 
-  Pause, 
-  Square, 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  PlusCircle,
+  Rocket,
+  Play,
+  Pause,
+  Square,
   RotateCcw,
   Clock,
   Calendar,
   AlertTriangle,
   CheckCircle2,
   Settings,
-  Trash2
-} from "lucide-react"
-import { SimulationWizard } from "@/components/simulation/SimulationWizard"
-import { SimulationType } from "@/components/simulation/types"
-import GlpLogisticAPI from "@/data/glpAPI"
-import { toast } from "sonner"
+  Trash2,
+} from "lucide-react";
+import { SimulationWizard } from "@/components/simulation/SimulationWizard";
+import { SimulationType } from "@/components/simulation/types";
+import GlpLogisticAPI from "@/data/glpAPI";
+import { toast } from "sonner";
 
 interface SimulationItem {
-  id: string
-  key?: string
-  name: string
-  type: SimulationType
-  status: "running" | "completed" | "paused" | "pending" | "error"
-  progress: number
-  startTime: string
-  estimatedEnd: string
-  createdAt: string
-  anioBase?: number
-  mesBase?: number
-  diaBase?: number
+  id: string;
+  key?: string;
+  name: string;
+  type: SimulationType;
+  status: "running" | "completed" | "paused" | "pending" | "error";
+  progress: number;
+  startTime: string;
+  estimatedEnd: string;
+  createdAt: string;
+  anioBase?: number;
+  mesBase?: number;
+  diaBase?: number;
 }
 
 export default function SimulationPage() {
-  const [activeTab, setActiveTab] = useState("simulations")
-  const [simulations, setSimulations] = useState<SimulationItem[]>([])
-  const [simulationDates, setSimulationDates] = useState<{[key: string]: string}>({});
+  const [activeTab, setActiveTab] = useState("simulations");
+  const [simulations, setSimulations] = useState<SimulationItem[]>([]);
+  const [simulationDates, setSimulationDates] = useState<{ [key: string]: string }>({});
 
-  const [ordersFiles,setOrdersFiles] = useState<any[]>([])
-  const [blockagesFiles,setBlockagesFiles] = useState<any[]>([])
+  const [ordersFiles, setOrdersFiles] = useState<any[]>([]);
+  const [blockagesFiles, setBlockagesFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesErrors, setFilesErrors] = useState<string[]>([]);
 
   // Cargar simulaciones del localStorage al iniciar
   useEffect(() => {
-    loadSimulationsFromStorage()
-    loadAvailableFiles()
-  }, [])
+    loadSimulationsFromStorage();
+    loadAvailableFiles();
+  }, []);
 
   const loadSimulationsFromStorage = () => {
     try {
-      const keys = Object.keys(localStorage).filter(key => key.startsWith('simulacion-'))
-      const loadedSimulations: SimulationItem[] = []
-      
-      keys.forEach(key => {
-        const simulationData = localStorage.getItem(key)
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith("simulacion-"));
+      const loadedSimulations: SimulationItem[] = [];
+
+      keys.forEach((key) => {
+        const simulationData = localStorage.getItem(key);
         if (simulationData) {
-          const simulation = JSON.parse(simulationData)
-          loadedSimulations.push(simulation)
+          const simulation = JSON.parse(simulationData);
+          loadedSimulations.push(simulation);
         }
-      })
-      
+      });
+
       // Si no hay simulaciones guardadas, usar datos de ejemplo
       if (loadedSimulations.length === 0) {
         const defaultSimulations: SimulationItem[] = [
@@ -81,18 +81,18 @@ export default function SimulationPage() {
             progress: 45,
             startTime: "09:30",
             estimatedEnd: "12:45",
-            createdAt: "2025-01-15"
+            createdAt: "2025-01-15",
           },
           {
             id: "2",
-            key: "simulacion-ejemplo-2", 
+            key: "simulacion-ejemplo-2",
             name: "Simulación Semanal - Diciembre 2024",
             type: SimulationType.SEMANAL,
             status: "completed",
             progress: 100,
             startTime: "08:00",
             estimatedEnd: "Completado",
-            createdAt: "2025-01-14"
+            createdAt: "2025-01-14",
           },
           {
             id: "3",
@@ -103,63 +103,73 @@ export default function SimulationPage() {
             progress: 23,
             startTime: "14:20",
             estimatedEnd: "Pausado",
-            createdAt: "2025-01-13"
-          }
-        ]
-        
+            createdAt: "2025-01-13",
+          },
+        ];
+
         // Guardar simulaciones de ejemplo en localStorage
-        defaultSimulations.forEach(sim => {
+        defaultSimulations.forEach((sim) => {
           if (sim.key) {
-            localStorage.setItem(sim.key, JSON.stringify(sim))
+            localStorage.setItem(sim.key, JSON.stringify(sim));
           }
-        })
-        
-        setSimulations(defaultSimulations)
+        });
+
+        setSimulations(defaultSimulations);
       } else {
         // Ordenar por fecha de creación (más reciente primero)
-        loadedSimulations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        setSimulations(loadedSimulations)
+        loadedSimulations.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setSimulations(loadedSimulations);
       }
     } catch (error) {
-      console.error('Error al cargar simulaciones del localStorage:', error)
+      console.error("Error al cargar simulaciones del localStorage:", error);
     }
-  }
+  };
 
   const loadAvailableFiles = async () => {
-    setFilesLoading(true)
-    setFilesErrors([])
+    setFilesLoading(true);
+    setFilesErrors([]);
 
-    try{
+    try {
       const ordersResult = await GlpLogisticAPI.files.getOrdersFile();
-      if(ordersResult.success){
+      if (ordersResult.success) {
         setOrdersFiles(ordersResult.files);
-      }else{
-        console.error('Error al cargar archivos de pedidos: ', ordersResult.mensaje);
+      } else {
+        console.error("Error al cargar archivos de pedidos: ", ordersResult.mensaje);
       }
 
       const blockagesResult = await GlpLogisticAPI.files.getBlockagesFile();
-      if(blockagesResult.success){
+      if (blockagesResult.success) {
         setBlockagesFiles(blockagesResult.files);
-      }else{
-        console.error('Error al cargar archivos de bloqueos: ', blockagesResult.mensaje);
+      } else {
+        console.error("Error al cargar archivos de bloqueos: ", blockagesResult.mensaje);
       }
-    }catch(error){
-      console.error('Error al cargar archivos: ', error);
-    }finally{
+    } catch (error) {
+      console.error("Error al cargar archivos: ", error);
+    } finally {
       setFilesLoading(false);
     }
-  }
+  };
 
-  const saveSimulacion = async (simulacionNueva: SimulationItem, fecha?: Date, hora?: { hour: string, minute: string }) => {
+  const saveSimulacion = async (
+    simulacionNueva: SimulationItem,
+    fecha?: Date,
+    hora?: { hour: string; minute: string }
+  ) => {
     try {
       // Generar key única usando timestamp + random
-      const key = `simulacion-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      simulacionNueva.key = key
-      const simulacionString = JSON.stringify(simulacionNueva)
-      localStorage.setItem(key, simulacionString)
+      const key = `simulacion-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      simulacionNueva.key = key;
+      const simulacionString = JSON.stringify(simulacionNueva);
+      localStorage.setItem(key, simulacionString);
 
       // Extraer año, mes, día, hora y minuto de los parámetros
-      let anio = 2025, mes = 1, dia = 1, horaInicial = 0, minutoInicial = 0;
+      let anio = 2025,
+        mes = 1,
+        dia = 1,
+        horaInicial = 0,
+        minutoInicial = 0;
       if (fecha) {
         anio = fecha.getFullYear();
         mes = fecha.getMonth() + 1; // getMonth() es 0-indexed
@@ -180,88 +190,96 @@ export default function SimulationPage() {
         horaInicial,
         minutoInicial,
         minutosPorIteracion,
-        timerSimulacion
+        timerSimulacion,
       });
 
-      setSimulations(prev => [simulacionNueva, ...prev])
-      return key
+      setSimulations((prev) => [simulacionNueva, ...prev]);
+      return key;
     } catch (error) {
-      console.error('Error al guardar simulación:', error)
-      throw error
+      console.error("Error al guardar simulación:", error);
+      throw error;
     }
-  }
+  };
 
   const updateSimulacion = (id: string, updates: Partial<SimulationItem>) => {
     try {
-      setSimulations(prev => prev.map(sim => {
-        if (sim.id === id) {
-          const updatedSim = { ...sim, ...updates }
-          // Actualizar en localStorage también
-          if (sim.key) {
-            localStorage.setItem(sim.key, JSON.stringify(updatedSim))
+      setSimulations((prev) =>
+        prev.map((sim) => {
+          if (sim.id === id) {
+            const updatedSim = { ...sim, ...updates };
+            // Actualizar en localStorage también
+            if (sim.key) {
+              localStorage.setItem(sim.key, JSON.stringify(updatedSim));
+            }
+            return updatedSim;
           }
-          return updatedSim
-        }
-        return sim
-      }))
+          return sim;
+        })
+      );
     } catch (error) {
-      console.error('Error al actualizar simulación:', error)
+      console.error("Error al actualizar simulación:", error);
     }
-  }
+  };
 
   const deleteSimulacion = (id: string) => {
     try {
-      const simulation = simulations.find(sim => sim.id === id)
+      const simulation = simulations.find((sim) => sim.id === id);
       if (simulation?.key) {
-        localStorage.removeItem(simulation.key)
+        localStorage.removeItem(simulation.key);
       }
-      setSimulations(prev => prev.filter(sim => sim.id !== id))
+      setSimulations((prev) => prev.filter((sim) => sim.id !== id));
     } catch (error) {
-      console.error('Error al eliminar simulación:', error)
+      console.error("Error al eliminar simulación:", error);
     }
-  }
+  };
 
   const clearAllSimulations = () => {
     try {
-      const keys = Object.keys(localStorage).filter(key => key.startsWith('simulacion-'))
-      keys.forEach(key => localStorage.removeItem(key))
-      setSimulations([])
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith("simulacion-"));
+      keys.forEach((key) => localStorage.removeItem(key));
+      setSimulations([]);
     } catch (error) {
-      console.error('Error al limpiar simulaciones:', error)
+      console.error("Error al limpiar simulaciones:", error);
     }
-  }
+  };
 
   // Función para subir archivos
-  const handleFileUpload = async (file:File, type: 'orders' | 'blockages') => {
-    try{
+  const handleFileUpload = async (file: File, type: "orders" | "blockages") => {
+    try {
       let result;
-      if(type === 'orders'){
+      if (type === "orders") {
         result = await GlpLogisticAPI.upload.orders(file);
-      }else{
+      } else {
         result = await GlpLogisticAPI.upload.blockages(file);
       }
 
-      if(result.success){
+      if (result.success) {
         toast.success(`Archivo de ${type} subido correctamente: ${result.mensaje}`, {
           duration: 5000,
         });
-      }else{
+      } else {
         toast.error(`Error al subir archivo de ${type}: ${result.mensaje}`, {
           duration: 5000,
         });
       }
-
     } catch (error) {
-      toast.error(`Error al subir archivo de ${type}: ${error instanceof Error ? error.message : 'Error desconocido'}`, {
-        duration: 5000
-      });
+      toast.error(
+        `Error al subir archivo de ${type}: ${
+          error instanceof Error ? error.message : "Error desconocido"
+        }`,
+        {
+          duration: 5000,
+        }
+      );
     }
-  }
+  };
 
   const handleSimulationComplete = async (data: any) => {
     try {
       // Extraer la fecha base seleccionada
-      let anio = 2025, mes = 1, dia = 1;
+      let anio = 2025,
+        mes = 1,
+        dia = 1;
       if (data.date instanceof Date) {
         anio = data.date.getFullYear();
         mes = data.date.getMonth() + 1;
@@ -269,104 +287,111 @@ export default function SimulationPage() {
       }
       const newSimulation: SimulationItem = {
         id: Date.now().toString(),
-        name: `Simulación ${getTypeLabel(data.type)} - ${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`,
+        name: `Simulación ${getTypeLabel(data.type)} - ${anio}-${mes
+          .toString()
+          .padStart(2, "0")}-${dia.toString().padStart(2, "0")}`,
         type: data.type,
         status: "pending",
         progress: 0,
         startTime: "Pendiente",
         estimatedEnd: "Pendiente",
-        createdAt: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString().split("T")[0],
         // Guardar la fecha base explícitamente
         anioBase: anio,
         mesBase: mes,
-        diaBase: dia
+        diaBase: dia,
       } as any;
       // Guardar la fecha base asociada al id de la simulación
-      setSimulationDates(prev => ({ ...prev, [newSimulation.id]: `${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}` }));
-      await saveSimulacion(newSimulation, data.date, data.time)
-      setActiveTab("simulations")
+      setSimulationDates((prev) => ({
+        ...prev,
+        [newSimulation.id]: `${anio}-${mes.toString().padStart(2, "0")}-${dia
+          .toString()
+          .padStart(2, "0")}`,
+      }));
+      await saveSimulacion(newSimulation, data.date, data.time);
+      setActiveTab("simulations");
     } catch (error) {
-      console.error('Error al crear simulación:', error)
+      console.error("Error al crear simulación:", error);
     }
-  }
+  };
 
   const handleSimulationAction = (id: string, action: "play" | "pause" | "stop" | "restart") => {
-    const updates: Partial<SimulationItem> = {}
-    
+    const updates: Partial<SimulationItem> = {};
+
     switch (action) {
       case "play":
-        updates.status = "running"
+        updates.status = "running";
         // Si no tiene hora de inicio o está pendiente, asignar hora actual
-        const currentSim = simulations.find(s => s.id === id)
+        const currentSim = simulations.find((s) => s.id === id);
         if (!currentSim?.startTime || currentSim.startTime === "Pendiente") {
-          updates.startTime = new Date().toLocaleTimeString()
+          updates.startTime = new Date().toLocaleTimeString();
         }
-        break
+        break;
       case "pause":
-        updates.status = "paused"
-        break
+        updates.status = "paused";
+        break;
       case "stop":
-        updates.status = "completed"
-        updates.progress = 100
-        updates.estimatedEnd = "Completado"
-        break
+        updates.status = "completed";
+        updates.progress = 100;
+        updates.estimatedEnd = "Completado";
+        break;
       case "restart":
-        updates.status = "running"
-        updates.progress = 0
-        updates.startTime = new Date().toLocaleTimeString()
-        updates.estimatedEnd = "Calculando..."
-        break
+        updates.status = "running";
+        updates.progress = 0;
+        updates.startTime = new Date().toLocaleTimeString();
+        updates.estimatedEnd = "Calculando...";
+        break;
     }
-    
-    updateSimulacion(id, updates)
-  }
+
+    updateSimulacion(id, updates);
+  };
 
   const getTypeLabel = (type: SimulationType) => {
     switch (type) {
       case SimulationType.DIA_DIA:
-        return "Día a Día"
+        return "Día a Día";
       case SimulationType.SEMANAL:
-        return "Semanal"
+        return "Semanal";
       case SimulationType.COLAPSO:
-        return "Colapso"
+        return "Colapso";
       default:
-        return "Desconocido"
+        return "Desconocido";
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "running":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "completed":
-        return "bg-green-100 text-green-800 border-green-200"
+        return "bg-green-100 text-green-800 border-green-200";
       case "paused":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "pending":
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-gray-100 text-gray-800 border-gray-200";
       case "error":
-        return "bg-red-100 text-red-800 border-red-200"
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
-  }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "running":
-        return <Play className="h-3 w-3" />
+        return <Play className="h-3 w-3" />;
       case "completed":
-        return <CheckCircle2 className="h-3 w-3" />
+        return <CheckCircle2 className="h-3 w-3" />;
       case "paused":
-        return <Pause className="h-3 w-3" />
+        return <Pause className="h-3 w-3" />;
       case "pending":
-        return <Clock className="h-3 w-3" />
+        return <Clock className="h-3 w-3" />;
       case "error":
-        return <AlertTriangle className="h-3 w-3" />
+        return <AlertTriangle className="h-3 w-3" />;
       default:
-        return <Clock className="h-3 w-3" />
+        return <Clock className="h-3 w-3" />;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/20 p-6">
@@ -413,12 +438,13 @@ export default function SimulationPage() {
                             {getStatusIcon(simulation.status)}
                             <span className="ml-1 capitalize">{simulation.status}</span>
                           </Badge>
-                          <Badge variant="secondary">
-                            {getTypeLabel(simulation.type)}
-                          </Badge>
+                          <Badge variant="secondary">{getTypeLabel(simulation.type)}</Badge>
                           {/* Mostrar la fecha base de la simulación */}
                           {simulationDates[simulation.id] && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-200"
+                            >
                               Fecha base: {simulationDates[simulation.id]}
                             </Badge>
                           )}
@@ -434,7 +460,7 @@ export default function SimulationPage() {
                             <Play className="h-4 w-4" />
                           </Button>
                         ) : null}
-                        
+
                         {simulation.status === "running" ? (
                           <Button
                             size="sm"
@@ -444,7 +470,7 @@ export default function SimulationPage() {
                             <Pause className="h-4 w-4" />
                           </Button>
                         ) : null}
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -452,7 +478,7 @@ export default function SimulationPage() {
                         >
                           <Square className="h-4 w-4" />
                         </Button>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -460,7 +486,7 @@ export default function SimulationPage() {
                         >
                           <RotateCcw className="h-4 w-4" />
                         </Button>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
@@ -480,7 +506,7 @@ export default function SimulationPage() {
                       </div>
                       <Progress value={simulation.progress} className="h-2" />
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
@@ -515,13 +541,10 @@ export default function SimulationPage() {
 
           {/* Create Simulation Tab */}
           <TabsContent value="create" className="space-y-6">
-            <SimulationWizard 
-              onComplete={handleSimulationComplete}
-              isModal={false}
-            />
+            <SimulationWizard onComplete={handleSimulationComplete} isModal={false} />
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
