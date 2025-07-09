@@ -1,5 +1,3 @@
-import { th } from "date-fns/locale";
-
 const API_BASE_URL = "http://localhost:8080/api";
 
 /**
@@ -8,12 +6,12 @@ const API_BASE_URL = "http://localhost:8080/api";
  * 2.- Cargar los pedidos (Caso semanal) GlpLogiscticAPI.simulation.weeklyOrders(...)
  * 3.- Cargar los bloqueos (Caso semanal) GlpLogiscticAPI.simulation.weeklyBlockages(...)
  * 4.- Iniciar Algoritmo con Simulacion Semanal GlpLogiscticAPI.simulation.weeklyStart(...)
- * 
- * 
- * 
- * 
- * 
- * 
+ *
+ *
+ *
+ *
+ *
+ *
  */
 
 const GlpLogisticAPI = {
@@ -49,14 +47,23 @@ const GlpLogisticAPI = {
       );
       return response.json();
     },
-    async weeklyOrders(params:{
-      anio:number;
-      mes:number;
-      dia:1;
-      hora:number;
-      minuto:number;
-    }){
-      try{
+    async resetSimulation() {
+      const response = await fetch(`${API_BASE_URL}/aco/simulacionRuta/reset`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return response.json();
+    },
+    async weeklyOrders(params: {
+      anio: number;
+      mes: number;
+      dia: 1;
+      hora: number;
+      minuto: number;
+    }) {
+      try {
         const queryParams = new URLSearchParams({
           anio: params.anio.toString(),
           mes: params.mes.toString(),
@@ -64,10 +71,12 @@ const GlpLogisticAPI = {
           hora: params.hora.toString(),
           minuto: params.minuto.toString(),
         });
-        const response = await fetch(`${API_BASE_URL}/simulacion/pedidos/semanal?${queryParams.toString()}`);
+        const response = await fetch(
+          `${API_BASE_URL}/simulacion/pedidos/semanal?${queryParams.toString()}`
+        );
         const result = await response.json();
         return result;
-      }catch(error){
+      } catch (error) {
         return {
           success: false,
           mensaje: error instanceof Error ? error.message : "Error desconocido",
@@ -75,14 +84,14 @@ const GlpLogisticAPI = {
         };
       }
     },
-    async weeklyBlockages(params:{
-      anio:number;
-      mes:number;
-      dia:number;
-      hora:number;
-      minuto:number;
-    }){
-      try{
+    async weeklyBlockages(params: {
+      anio: number;
+      mes: number;
+      dia: number;
+      hora: number;
+      minuto: number;
+    }) {
+      try {
         const queryParams = new URLSearchParams({
           anio: params.anio.toString(),
           mes: params.mes.toString(),
@@ -90,10 +99,12 @@ const GlpLogisticAPI = {
           hora: params.hora.toString(),
           minuto: params.minuto.toString(),
         });
-        const response = await fetch(`${API_BASE_URL}/simulacion/bloqueos/semanal?${queryParams.toString()}`);
+        const response = await fetch(
+          `${API_BASE_URL}/simulacion/bloqueos/semanal?${queryParams.toString()}`
+        );
         const result = await response.json();
         return result;
-      }catch(error){
+      } catch (error) {
         return {
           success: false,
           mensaje: error instanceof Error ? error.message : "Error desconocido",
@@ -101,14 +112,12 @@ const GlpLogisticAPI = {
         };
       }
     },
-    async weeklyStart(params:{
-      tipoSimulacion: number;
-    }){
-      try{
+    async weeklyStart(params: { tipoSimulacion: number }) {
+      try {
         const queryParams = new URLSearchParams({
           tipoSimulacion: params.tipoSimulacion.toString(),
         });
-        const response = await fetch(`${API_BASE_URL}/aco/inicializar?${queryParams.toString()}`,{
+        const response = await fetch(`${API_BASE_URL}/aco/inicializar?${queryParams.toString()}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -116,7 +125,7 @@ const GlpLogisticAPI = {
         });
         const result = await response.json();
         return result;
-      }catch(error){
+      } catch (error) {
         return {
           success: false,
           mensaje: error instanceof Error ? error.message : "Error desconocido",
@@ -124,28 +133,39 @@ const GlpLogisticAPI = {
         };
       }
     },
-    async weeklyRoutes(params:{
+    async weeklyRoutes(params: {
       anio: number;
       mes: number;
       timer: number;
       minutosPorIteracion: number;
-    }){
-      try{
+    }) {
+      try {
         const queryParams = new URLSearchParams({
           anio: params.anio.toString(),
           mes: params.mes.toString(),
           timer: params.timer.toString(),
           minutosPorIteracion: params.minutosPorIteracion.toString(),
         });
-        const response = await fetch(`${API_BASE_URL}/aco/simulacionRuta/semanal?${queryParams.toString()}`,{
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/aco/simulacionRuta/semanal?${queryParams.toString()}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify([]), // Para averías si las hay
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
         const result = await response.json();
-        return result;
-      }catch(error){
+        return {
+          success: true,
+          data: result,
+          status: response.status,
+        };
+      } catch (error) {
         return {
           success: false,
           mensaje: error instanceof Error ? error.message : "Error desconocido",
@@ -213,9 +233,7 @@ const GlpLogisticAPI = {
   files: {
     async getOrdersFile() {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/pedidos/nombre-pedidos-archivos`
-        );
+        const response = await fetch(`${API_BASE_URL}/pedidos/nombre-pedidos-archivos`);
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -265,8 +283,7 @@ const GlpLogisticAPI = {
               icon = "🚛";
             }
 
-            const sortDate =
-              year && monthNumber ? `${year}-${monthNumber}` : "0000-00";
+            const sortDate = year && monthNumber ? `${year}-${monthNumber}` : "0000-00";
 
             return {
               id: "file-" + index,
@@ -280,15 +297,13 @@ const GlpLogisticAPI = {
               sortDate: sortDate,
               isRecent:
                 year === new Date().getFullYear().toString() &&
-                monthNumber ===
-                  (new Date().getMonth() + 1).toString().padStart(2, "0"),
+                monthNumber === (new Date().getMonth() + 1).toString().padStart(2, "0"),
               description: `Archivo de ${type} del ${month} de ${year}`,
             };
           }) || [];
 
-        formattedFiles.sort(
-          (a: { sortDate: string }, b: { sortDate: string }) =>
-            b.sortDate.localeCompare(a.sortDate)
+        formattedFiles.sort((a: { sortDate: string }, b: { sortDate: string }) =>
+          b.sortDate.localeCompare(a.sortDate)
         );
 
         return {
@@ -296,9 +311,7 @@ const GlpLogisticAPI = {
           mensaje: data.Mensaje,
           files: formattedFiles,
           totalFiles: formattedFiles.length,
-          recentFiles: formattedFiles.filter(
-            (f: { isRecent: any }) => f.isRecent
-          ),
+          recentFiles: formattedFiles.filter((f: { isRecent: any }) => f.isRecent),
           filesByType: formattedFiles.reduce(
             (acc: { [x: string]: any }, file: { type: string | number }) => {
               acc[file.type] = (acc[file.type] || 0) + 1;
@@ -321,9 +334,7 @@ const GlpLogisticAPI = {
     },
     async getBlockagesFile() {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/bloqueos/nombre-bloqueos-archivos`
-        );
+        const response = await fetch(`${API_BASE_URL}/bloqueos/nombre-bloqueos-archivos`);
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -351,9 +362,9 @@ const GlpLogisticAPI = {
               type: "bloqueos",
               icon: "🚫",
               isRecent: year === new Date().getFullYear().toString(),
-              description: `Archivo de bloqueos para ${
-                month || "fecha no especificada"
-              } ${year || ""}`,
+              description: `Archivo de bloqueos para ${month || "fecha no especificada"} ${
+                year || ""
+              }`,
             };
           }) || [];
 
@@ -366,10 +377,7 @@ const GlpLogisticAPI = {
       } catch (error) {
         return {
           success: false,
-          mensaje:
-            error instanceof Error
-              ? error.message
-              : "Error desconocido al obtener bloqueos",
+          mensaje: error instanceof Error ? error.message : "Error desconocido al obtener bloqueos",
           status: 500,
           files: [],
           totalFiles: 0,

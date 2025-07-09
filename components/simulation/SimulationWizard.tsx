@@ -1,59 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
-import { 
-  Calendar, 
-  CalendarDays, 
-  Zap, 
-  Upload, 
-  Database, 
+import { useState } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  Calendar,
+  CalendarDays,
+  Zap,
+  Upload,
+  Database,
   FileText,
   CheckCircle,
   Cog,
-  Clock
-} from "lucide-react"
-import { 
+  Clock,
+} from "lucide-react";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { SimulationType, mockPedidosFiles, mockBloqueosFiles } from "./types"
+} from "@/components/ui/select";
+import { SimulationType, mockPedidosFiles, mockBloqueosFiles } from "./types";
 
 interface SimulationWizardProps {
-  onClose?: () => void
-  onComplete: (data: SimulationData) => void
-  isModal?: boolean
+  onClose?: () => void;
+  onComplete: (data: SimulationData) => void;
+  isModal?: boolean;
 }
 
 interface SimulationData {
-  type: SimulationType
-  date: Date | undefined
-  time: { hour: string; minute: string }
-  dataSource: "new" | "existing"
+  type: SimulationType;
+  date: Date | undefined;
+  time: { hour: string; minute: string };
+  dataSource: "new" | "existing";
   files: {
-    pedidos: string
-    bloqueos: string
-  }
+    pedidos: string;
+    bloqueos: string;
+  };
 }
 
 export function SimulationWizard({ onClose, onComplete, isModal = true }: SimulationWizardProps) {
-  const [formData, setFormData] = useState<Partial<SimulationData>>({})
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [uploadedFiles, setUploadedFiles] = useState<{pedidos?: File, bloqueos?: File}>({})
-  const [validationStatus, setValidationStatus] = useState<"idle" | "validating" | "valid" | "invalid">("idle")
-  const [validationProgress, setValidationProgress] = useState(0)
+  const [formData, setFormData] = useState<Partial<SimulationData>>({});
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ pedidos?: File; bloqueos?: File }>({});
+  const [validationStatus, setValidationStatus] = useState<
+    "idle" | "validating" | "valid" | "invalid"
+  >("idle");
+  const [validationProgress, setValidationProgress] = useState(0);
 
   const simulationTypes = [
     {
@@ -61,71 +63,77 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
       title: "Día a Día",
       subtitle: "Simulación diaria",
       icon: Calendar,
-      gradient: "from-blue-500 to-cyan-500"
+      gradient: "from-blue-500 to-cyan-500",
     },
     {
       type: SimulationType.SEMANAL,
       title: "Semanal",
       subtitle: "Simulación semanal",
       icon: CalendarDays,
-      gradient: "from-green-500 to-emerald-500"
+      gradient: "from-green-500 to-emerald-500",
     },
     {
       type: SimulationType.COLAPSO,
       title: "Colapso",
       subtitle: "Escenario crítico",
       icon: Zap,
-      gradient: "from-red-500 to-orange-500"
-    }
-  ]
+      gradient: "from-red-500 to-orange-500",
+    },
+  ];
 
   const handleFileUpload = async (type: "pedidos" | "bloqueos", file: File) => {
-    if (type === "pedidos" && (!file.name.toLowerCase().includes("ventas") || !file.name.endsWith(".txt"))) {
-      alert("Archivo de pedidos debe contener 'ventas' en el nombre y ser .txt")
-      return
+    if (
+      type === "pedidos" &&
+      (!file.name.toLowerCase().includes("ventas") || !file.name.endsWith(".txt"))
+    ) {
+      alert("Archivo de pedidos debe contener 'ventas' en el nombre y ser .txt");
+      return;
     }
-    if (type === "bloqueos" && (!file.name.toLowerCase().includes("bloqueos") || !file.name.endsWith(".txt"))) {
-      alert("Archivo de bloqueos debe contener 'bloqueos' en el nombre y ser .txt")
-      return
+    if (
+      type === "bloqueos" &&
+      (!file.name.toLowerCase().includes("bloqueos") || !file.name.endsWith(".txt"))
+    ) {
+      alert("Archivo de bloqueos debe contener 'bloqueos' en el nombre y ser .txt");
+      return;
     }
 
-    setUploadedFiles(prev => ({ ...prev, [type]: file }))
-    
+    setUploadedFiles((prev) => ({ ...prev, [type]: file }));
+
     if (uploadedFiles.pedidos && uploadedFiles.bloqueos) {
-      await validateFiles()
+      await validateFiles();
     }
-  }
+  };
 
   const validateFiles = async () => {
-    setValidationStatus("validating")
-    setValidationProgress(0)
+    setValidationStatus("validating");
+    setValidationProgress(0);
 
     for (let i = 1; i <= 5; i++) {
-      await new Promise(resolve => setTimeout(resolve, 400))
-      setValidationProgress((i / 5) * 100)
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      setValidationProgress((i / 5) * 100);
     }
 
-    setValidationStatus("valid")
-    setFormData(prev => ({
+    setValidationStatus("valid");
+    setFormData((prev) => ({
       ...prev,
       files: {
         pedidos: uploadedFiles.pedidos?.name || "",
-        bloqueos: uploadedFiles.bloqueos?.name || ""
-      }
-    }))
-  }
+        bloqueos: uploadedFiles.bloqueos?.name || "",
+      },
+    }));
+  };
 
   const handleComplete = async () => {
     if (!formData.type || !formData.date || !formData.time?.hour || !formData.time?.minute) {
-      alert("Por favor completa todos los campos requeridos")
-      return
+      alert("Por favor completa todos los campos requeridos");
+      return;
     }
 
-    setIsProcessing(true)
+    setIsProcessing(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       const simulationData: SimulationData = {
         type: formData.type,
         date: formData.date,
@@ -133,21 +141,21 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
         dataSource: formData.dataSource || "existing",
         files: formData.files || {
           pedidos: mockPedidosFiles[0],
-          bloqueos: mockBloqueosFiles[0]
-        }
-      }
+          bloqueos: mockBloqueosFiles[0],
+        },
+      };
 
-      onComplete(simulationData)
-      
+      onComplete(simulationData);
+
       if (onClose) {
-        onClose()
+        onClose();
       }
     } catch (error) {
-      console.error("Error creating simulation:", error)
+      console.error("Error creating simulation:", error);
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const FormContent = () => (
     <div className="space-y-8 p-6">
@@ -162,23 +170,25 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
         <Label className="text-lg font-semibold">Tipo de Simulación</Label>
         <div className="grid gap-4 md:grid-cols-3">
           {simulationTypes.map((sim) => {
-            const isSelected = formData.type === sim.type
+            const isSelected = formData.type === sim.type;
             return (
-              <Card 
+              <Card
                 key={sim.type}
                 className={cn(
                   "cursor-pointer transition-all duration-200 hover:scale-[1.02]",
-                  isSelected 
-                    ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200" 
+                  isSelected
+                    ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200"
                     : "hover:border-gray-300"
                 )}
-                onClick={() => setFormData(prev => ({ ...prev, type: sim.type }))}
+                onClick={() => setFormData((prev) => ({ ...prev, type: sim.type }))}
               >
                 <CardContent className="p-4 space-y-3">
-                  <div className={cn(
-                    "h-12 w-12 rounded-lg flex items-center justify-center bg-gradient-to-r",
-                    sim.gradient
-                  )}>
+                  <div
+                    className={cn(
+                      "h-12 w-12 rounded-lg flex items-center justify-center bg-gradient-to-r",
+                      sim.gradient
+                    )}
+                  >
                     <sim.icon className="h-6 w-6 text-white" />
                   </div>
                   <div className="space-y-1">
@@ -186,13 +196,11 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
                     <p className="text-sm text-gray-500">{sim.subtitle}</p>
                   </div>
                   {isSelected && (
-                    <Badge className="w-full justify-center bg-blue-500">
-                      Seleccionado
-                    </Badge>
+                    <Badge className="w-full justify-center bg-blue-500">Seleccionado</Badge>
                   )}
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </div>
@@ -226,10 +234,10 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
               <CalendarComponent
                 mode="single"
                 selected={formData.date}
-                onSelect={(date) => setFormData(prev => ({ ...prev, date }))}
+                onSelect={(date) => setFormData((prev) => ({ ...prev, date }))}
                 disabled={(date) => {
-                  const year = date.getFullYear()
-                  return year < 2025 || date < new Date("2025-01-01")
+                  const year = date.getFullYear();
+                  return year < 2025 || date < new Date("2025-01-01");
                 }}
                 initialFocus
                 locale={es}
@@ -246,38 +254,42 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
             Hora de inicio
           </Label>
           <div className="grid grid-cols-2 gap-3">
-            <Select 
-              value={formData.time?.hour || ""} 
-              onValueChange={(value) => setFormData(prev => ({
-                ...prev,
-                time: { hour: value, minute: prev.time?.minute || "" }
-              }))}
+            <Select
+              value={formData.time?.hour || ""}
+              onValueChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  time: { hour: value, minute: prev.time?.minute || "" },
+                }))
+              }
             >
               <SelectTrigger className="h-12">
                 <SelectValue placeholder="HH" />
               </SelectTrigger>
               <SelectContent>
                 {Array.from({ length: 24 }, (_, i) => (
-                  <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                    {i.toString().padStart(2, '0')}
+                  <SelectItem key={i} value={i.toString().padStart(2, "0")}>
+                    {i.toString().padStart(2, "0")}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select 
-              value={formData.time?.minute || ""} 
-              onValueChange={(value) => setFormData(prev => ({
-                ...prev,
-                time: { hour: prev.time?.hour || "", minute: value }
-              }))}
+            <Select
+              value={formData.time?.minute || ""}
+              onValueChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  time: { hour: prev.time?.hour || "", minute: value },
+                }))
+              }
             >
               <SelectTrigger className="h-12">
                 <SelectValue placeholder="MM" />
               </SelectTrigger>
               <SelectContent>
                 {Array.from({ length: 60 }, (_, i) => (
-                  <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                    {i.toString().padStart(2, '0')}
+                  <SelectItem key={i} value={i.toString().padStart(2, "0")}>
+                    {i.toString().padStart(2, "0")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -293,14 +305,14 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
           Fuente de Datos
         </Label>
         <div className="grid gap-4 md:grid-cols-2">
-          <Card 
+          <Card
             className={cn(
               "cursor-pointer transition-all duration-200",
-              formData.dataSource === "new" 
-                ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200" 
+              formData.dataSource === "new"
+                ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200"
                 : "hover:border-gray-300"
             )}
-            onClick={() => setFormData(prev => ({ ...prev, dataSource: "new" }))}
+            onClick={() => setFormData((prev) => ({ ...prev, dataSource: "new" }))}
           >
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center gap-3">
@@ -312,15 +324,15 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
               </div>
             </CardContent>
           </Card>
-          
-          <Card 
+
+          <Card
             className={cn(
               "cursor-pointer transition-all duration-200",
-              formData.dataSource === "existing" 
-                ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200" 
+              formData.dataSource === "existing"
+                ? "ring-2 ring-blue-500 bg-blue-50 border-blue-200"
                 : "hover:border-gray-300"
             )}
-            onClick={() => setFormData(prev => ({ ...prev, dataSource: "existing" }))}
+            onClick={() => setFormData((prev) => ({ ...prev, dataSource: "existing" }))}
           >
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center gap-3">
@@ -344,8 +356,8 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
                   type="file"
                   accept=".txt"
                   onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleFileUpload("pedidos", file)
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload("pedidos", file);
                   }}
                   className="hidden"
                   id="pedidos-upload"
@@ -353,12 +365,14 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
                 <label htmlFor="pedidos-upload" className="cursor-pointer">
                   <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    {uploadedFiles.pedidos ? uploadedFiles.pedidos.name : "Subir archivo de ventas (.txt)"}
+                    {uploadedFiles.pedidos
+                      ? uploadedFiles.pedidos.name
+                      : "Subir archivo de ventas (.txt)"}
                   </p>
                 </label>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label className="text-sm font-medium">Archivo de Bloqueos</Label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
@@ -366,8 +380,8 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
                   type="file"
                   accept=".txt"
                   onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleFileUpload("bloqueos", file)
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload("bloqueos", file);
                   }}
                   className="hidden"
                   id="bloqueos-upload"
@@ -375,7 +389,9 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
                 <label htmlFor="bloqueos-upload" className="cursor-pointer">
                   <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    {uploadedFiles.bloqueos ? uploadedFiles.bloqueos.name : "Subir archivo de bloqueos (.txt)"}
+                    {uploadedFiles.bloqueos
+                      ? uploadedFiles.bloqueos.name
+                      : "Subir archivo de bloqueos (.txt)"}
                   </p>
                 </label>
               </div>
@@ -409,16 +425,22 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
             Cancelar
           </Button>
         )}
-        <Button 
-          onClick={handleComplete} 
-          disabled={isProcessing || !formData.type || !formData.date || !formData.time?.hour || !formData.time?.minute}
+        <Button
+          onClick={handleComplete}
+          disabled={
+            isProcessing ||
+            !formData.type ||
+            !formData.date ||
+            !formData.time?.hour ||
+            !formData.time?.minute
+          }
           className="bg-green-600 hover:bg-green-700"
         >
-          {isProcessing ? 'Creando...' : 'Crear Simulación'}
+          {isProcessing ? "Creando..." : "Crear Simulación"}
         </Button>
       </div>
     </div>
-  )
+  );
 
   if (isModal) {
     return (
@@ -427,7 +449,7 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
           <FormContent />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -436,5 +458,5 @@ export function SimulationWizard({ onClose, onComplete, isModal = true }: Simula
         <FormContent />
       </div>
     </div>
-  )
+  );
 }
