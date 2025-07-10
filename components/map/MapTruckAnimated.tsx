@@ -59,9 +59,8 @@ const MapTruckAnimated: React.FC<MapTruckAnimatedProps> = ({
   animationSpeed = 0.3 // Animación más lenta por defecto
 }) => {
   const [currentPosition, setCurrentPosition] = useState({ x: 0, y: 0 });
-  const [targetPosition, setTargetPosition] = useState({ x: 0, y: 0 });
+  // const [targetPosition, setTargetPosition] = useState({ x: 0, y: 0 });
   const [isMoving, setIsMoving] = useState(false);
-  const [lastUpdateTime, setLastUpdateTime] = useState(0);
 
   // Función para interpolar posición con suavizado
   const smoothInterpolate = (
@@ -93,92 +92,31 @@ const MapTruckAnimated: React.FC<MapTruckAnimatedProps> = ({
     };
   };
 
-  // Calcular posición objetivo basada en la ruta y el tiempo
+  // Calcular posición basada en la ruta y el tiempo, usando x,y directamente
   useEffect(() => {
     if (!route || route.length === 0) {
       if (ubicacionActual) {
-        const newPosition = { x: ubicacionActual.x, y: ubicacionActual.y };
-        setTargetPosition(newPosition);
-        setCurrentPosition(newPosition);
-        setIsMoving(false);
+        setCurrentPosition({ x: ubicacionActual.x, y: ubicacionActual.y });
       }
       return;
     }
-
-    // Buscar nodo exacto donde estamos actualmente
-    const nodoActual = route.find(node => 
-      currentTime >= node.tiempoInicio && currentTime <= node.tiempoFin
-    );
-
-    if (nodoActual) {
-      // Estamos en un nodo específico
-      const newPosition = { x: nodoActual.x, y: nodoActual.y };
-      setTargetPosition(newPosition);
-      setIsMoving(false);
-      return;
-    }
-
-    // Buscar si estamos entre dos nodos (en tránsito)
-    for (let i = 0; i < route.length - 1; i++) {
-      const current = route[i];
+    // Encontrar segmento de ruta o nodo actual
+    let pos = route.reduce((acc, node, i) => {
+      if (currentTime >= node.tiempoInicio && currentTime <= node.tiempoFin) {
+        return { x: node.x, y: node.y };
+      }
       const next = route[i + 1];
-      
-      if (currentTime > current.tiempoFin && currentTime < next.tiempoInicio) {
-        const totalTime = next.tiempoInicio - current.tiempoFin;
-        const elapsedTime = currentTime - current.tiempoFin;
-        const progress = totalTime > 0 ? Math.min(elapsedTime / totalTime, 1) : 0;
-        
-        const interpolatedPosition = interpolatePosition(
-          { x: current.x, y: current.y, time: current.tiempoFin },
-          { x: next.x, y: next.y, time: next.tiempoInicio },
-          currentTime
-        );
-        
-        setTargetPosition(interpolatedPosition);
-        setIsMoving(true);
-        return;
+      if (next && currentTime > node.tiempoFin && currentTime < next.tiempoInicio) {
+        const progress = (currentTime - node.tiempoFin) / (next.tiempoInicio - node.tiempoFin);
+        return {
+          x: node.x + (next.x - node.x) * progress,
+          y: node.y + (next.y - node.y) * progress
+        };
       }
-    }
-
-    // Si no encontramos posición exacta, usar el nodo más cercano
-    const closestNode = route.reduce((closest, node) => {
-      const currentDiff = Math.min(
-        Math.abs(node.tiempoInicio - currentTime),
-        Math.abs(node.tiempoFin - currentTime)
-      );
-      const closestDiff = Math.min(
-        Math.abs(closest.tiempoInicio - currentTime),
-        Math.abs(closest.tiempoFin - currentTime)
-      );
-      return currentDiff < closestDiff ? node : closest;
-    });
-    
-    const newPosition = { x: closestNode.x, y: closestNode.y };
-    setTargetPosition(newPosition);
-    setIsMoving(false);
+      return acc;
+    }, { x: route[0].x, y: route[0].y });
+    setCurrentPosition(pos);
   }, [route, currentTime, ubicacionActual]);
-
-  // Animación suave hacia la posición objetivo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPosition(prevPosition => {
-        const dx = targetPosition.x - prevPosition.x;
-        const dy = targetPosition.y - prevPosition.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // Si estamos muy cerca del objetivo, ir directamente
-        if (distance < 0.1) {
-          return targetPosition;
-        }
-        
-        // Interpolación suave con velocidad configurable
-        const factor = Math.min(animationSpeed * 0.1, 1);
-        return smoothInterpolate(prevPosition, targetPosition, factor);
-      });
-    }, 50); // 50ms = 20 FPS para animación suave
-
-    return () => clearInterval(interval);
-  }, [targetPosition, animationSpeed, smoothInterpolate]);
 
   // Calcular posición en el mapa considerando zoom y offset
   const screenPosition = {
@@ -249,7 +187,7 @@ const MapTruckAnimated: React.FC<MapTruckAnimatedProps> = ({
                      whitespace-nowrap backdrop-blur-sm z-50">
         <div className="font-semibold mb-1">Camión {codigo}</div>
         <div>Posición: ({currentPosition.x.toFixed(1)}, {currentPosition.y.toFixed(1)})</div>
-        <div>Objetivo: ({targetPosition.x.toFixed(1)}, {targetPosition.y.toFixed(1)})</div>
+        <div>Objetivo: ({currentPosition.x.toFixed(1)}, {currentPosition.y.toFixed(1)})</div>
         <div>Carga: {currentLoad}/{capacity}kg</div>
         <div>GLP: {glpDisponible}L</div>
         <div>Estado: {enAveria ? 'Averiado' : isMoving ? 'En movimiento' : 'Parado'}</div>

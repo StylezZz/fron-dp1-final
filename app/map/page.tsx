@@ -111,7 +111,7 @@ const MapWithSimulation: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapTheme, setMapTheme] = useState<"light" | "dark" | "satellite">("light");
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const [truckAnimationSpeed, setTruckAnimationSpeed] = useState(1);
+  const [truckAnimationSpeed, setTruckAnimationSpeed] = useState(0.2);
   const [animationSpeed, setAnimationSpeed] = useState(0.3);
   const [showSpeedControl, setShowSpeedControl] = useState(true);
   // Estados de visualización avanzados
@@ -1031,83 +1031,6 @@ const MapWithSimulation: React.FC = () => {
         </div>
       </div>
 
-      {/* Controles flotantes izquierda */}
-      <div className="absolute top-20 left-4 z-40 flex flex-col gap-2">
-        {/* Controles de navegación */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg p-2 flex flex-col gap-1">
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            className={`p-2 hover:bg-blue-100 rounded-lg transition-colors ${
-              showSearch ? "bg-blue-100 text-blue-600" : ""
-            }`}
-            title="Buscar"
-          >
-            <Search size={20} />
-          </button>
-          <button
-            onClick={handleZoomIn}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Acercar"
-          >
-            <Plus size={20} />
-          </button>
-          <button
-            onClick={handleZoomOut}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Alejar"
-          >
-            <Minus size={20} />
-          </button>
-          <button
-            onClick={centerMap}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Centrar mapa"
-          >
-            <Target size={20} />
-          </button>
-        </div>
-
-        {/* Controles de capas */}
-        <div className="bg-white/90 backdrop-blur-md rounded-xl shadow-lg p-2 flex flex-col gap-1">
-          <button
-            onClick={() => setShowHeatmap(!showHeatmap)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
-              showHeatmap ? "bg-orange-100 text-orange-600" : ""
-            }`}
-            title="Mapa de calor"
-          >
-            <Zap size={20} />
-          </button>
-          <button
-            onClick={() => setShowConnections(!showConnections)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
-              showConnections ? "bg-purple-100 text-purple-600" : ""
-            }`}
-            title="Conexiones"
-          >
-            <Network size={20} />
-          </button>
-          <button
-            onClick={() => setShowZones(!showZones)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
-              showZones ? "bg-cyan-100 text-cyan-600" : ""
-            }`}
-            title="Zonas"
-          >
-            <Pin size={20} />
-          </button>
-          <button
-            onClick={() => setShowLegend(!showLegend)}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition-colors ${
-              showLegend ? "bg-green-100 text-green-600" : ""
-            }`}
-            title="Leyenda"
-          >
-            <Layers size={20} />
-          </button>
-        </div>
-      </div>
-
       {/* Contenedor principal del mapa */}
       <div
         ref={mapRef}
@@ -1194,22 +1117,6 @@ const MapWithSimulation: React.FC = () => {
                 />
               );
             })}
-
-            
-
-            // 10. CONTROL DE VELOCIDAD DE ANIMACIÓN (agregar después del TimerInfo)
-            {simulacionActiva && datosListos && showSpeedControl && (
-              <div className="mb-4">
-                <AnimationSpeedControl
-                  speed={animationSpeed}
-                  onSpeedChange={setAnimationSpeed}
-                  isPlaying={status === "running"}
-                  onTogglePlay={toggleSimulation}
-                />
-              </div>
-            )}
-
-
           {/* Pedidos */}
           {showOrders &&
             pedidosVisibles.map((order) => (
@@ -1234,10 +1141,6 @@ const MapWithSimulation: React.FC = () => {
         {/* Barra de información inferior */}
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-white/90 backdrop-blur-md border-t border-gray-200 flex items-center justify-between px-6 text-sm">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>Zoom: {(zoomLevel * 100).toFixed(0)}%</span>
-            </div>
             <div className="flex items-center gap-2">
               <MapPin size={14} className="text-gray-500" />
               <span>
