@@ -1,53 +1,36 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import {
-  Search,
-  Plus,
-  Minus,
-  Home,
-  Truck,
-  Package,
-  MapPin,
-  Navigation,
-  Settings,
-  Filter,
-  Eye,
-  EyeOff,
-  Layers,
-  Target,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Play,
-  Pause,
-  RotateCcw,
-  Maximize,
-  Minimize,
-  List,
-  Grid,
-  Network,
-  Wrench,
-  AlertCircle,
-  Bell,
-  TrendingUp,
-  BarChart3,
-  Activity,
-  Workflow,
-  Zap as Lightning,
-  Users,
-  MapPin as Pin,
-} from "lucide-react";
-import MapTruck from "../../components/map/MapTruck";
-import MapOrder from "../../components/map/MapOrder";
-import MapWarehouse from "../../components/map/MapWarehouse";
-import MapRoute from "../../components/map/MapRoute";
-import MapZone from "../../components/map/MapZone";
-import MapConnections from "../../components/map/MapConnections";
-import MapGrid from "../../components/map/MapGrid";
+import MapTruckAnimated from "@/components/map/MapTruckAnimated";
+import TruckDebugPanel from "@/components/map/TruckDebugPanel";
+import AnimationSpeedControl from "@/components/map/AnimationControlSpeed";
 import GlpLogisticAPI from "@/data/glpAPI";
 import { SimulationProvider, useSimulation } from "@/hooks/useSimulation";
+import {
+  Bell,
+  Clock,
+  EyeOff,
+  Home,
+  Layers,
+  MapPin,
+  Maximize,
+  Minimize,
+  Minus,
+  Network,
+  Pause,
+  MapPin as Pin,
+  Play,
+  Plus,
+  RotateCcw,
+  Search,
+  Target,
+  Truck,
+  Zap,
+  Gauge
+} from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import MapGrid from "../../components/map/MapGrid";
+import MapOrder from "../../components/map/MapOrder";
+import MapWarehouse from "../../components/map/MapWarehouse";
 
 // Tipos basados en tu estructura actual
 interface MapPosition {
@@ -127,7 +110,10 @@ const MapWithSimulation: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapTheme, setMapTheme] = useState<"light" | "dark" | "satellite">("light");
-
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [truckAnimationSpeed, setTruckAnimationSpeed] = useState(1);
+  const [animationSpeed, setAnimationSpeed] = useState(0.3);
+  const [showSpeedControl, setShowSpeedControl] = useState(true);
   // Estados de visualización avanzados
   const [showOrders, setShowOrders] = useState(true);
   const [showTrucks, setShowTrucks] = useState(true);
@@ -615,14 +601,22 @@ const MapWithSimulation: React.FC = () => {
     setSimulaciones(loadedSimulations);
   }, []);
 
-  // Función para calcular timer ACO
-  const calcularTimerACO = useCallback((currentTime: number, diaBase: number = 1) => {
-    const diaActual = diaBase + Math.floor(currentTime / 1440);
-    const horaActual = Math.floor((currentTime % 1440) / 60);
-    const minutoActual = currentTime % 60;
-
-    return diaActual * 1440 + horaActual * 60 + minutoActual;
-  }, []);
+  const [timerOffset, setTimerOffset] = useState(0);
+  
+  const calcularTimerACO = useCallback((currentTime: number) => {
+    // Timer ACO siempre empieza en 1440 y avanza linealmente
+    const timerACO = 1440 + currentTime + timerOffset;
+    
+    // Log para debugging (comentar en producción)
+    if (currentTime % 60 === 0) { // Solo cada hora para no spamear
+      const diaSimulado = Math.floor(currentTime / 1440) + 1;
+      const horaSimulada = Math.floor((currentTime % 1440) / 60);
+      const minutoSimulado = currentTime % 60;
+      console.log(`🕐 Timer: currentTime=${currentTime}, timerACO=${timerACO}, tiempo=${diaSimulado}d ${horaSimulada}h ${minutoSimulado}m`);
+    }
+    
+    return timerACO;
+  }, [timerOffset]);
 
   // Función unificada de control
   const toggleSimulation = useCallback(() => {
@@ -723,10 +717,10 @@ const MapWithSimulation: React.FC = () => {
       if (!simulacionActiva || status !== "running" || !datosListos) return;
 
       // 🕐 Solo ejecutar cada 60 minutos de simulación (configurable)
-      if (currentTime % 60 !== 0) return;
+      if (currentTime % 5 !== 0) return;
 
       try {
-        const timerACO = calcularTimerACO(currentTime, simulacionActiva.diaBase || 1);
+        const timerACO = calcularTimerACO(currentTime);
 
         console.log(
           `🔄 Iterando ACO - Tiempo: ${Math.floor(currentTime / 1440)}d ${Math.floor(
@@ -739,7 +733,7 @@ const MapWithSimulation: React.FC = () => {
           anio: simulacionActiva.anioBase || 2025,
           mes: simulacionActiva.mesBase || 1,
           timer: timerACO,
-          minutosPorIteracion: 10,
+          minutosPorIteracion: 1,
         });
 
         console.log("🚚 Camiones actualizados:", response?.data?.camiones || []);
@@ -766,6 +760,41 @@ const MapWithSimulation: React.FC = () => {
     return "bg-gray-400";
   };
 
+  const getTruckStats = useCallback(() => {
+    if (!Array.isArray(simTrucks)) return { total: 0, enRuta: 0, averiados: 0, cargados: 0 };
+    
+    const stats = {
+      total: simTrucks.length,
+      enRuta: simTrucks.filter(t => t.route && t.route.length > 0).length,
+      averiados: simTrucks.filter(t => t.enAveria).length,
+      cargados: simTrucks.filter(t => (t.cargaAsignada || 0) > 0).length
+    };
+    return stats;
+  }, [simTrucks]);
+
+  const debugTruckData = useCallback(() => {
+    if (simTrucks.length > 0) {
+      const timerACO = calcularTimerACO(currentTime);
+      console.log("🔍 Debug - Estado actual:", {
+        currentTime,
+        timerACO,
+        trucksCount: simTrucks.length,
+        sampleTruck: simTrucks[0] ? {
+          codigo: simTrucks[0].codigo,
+          routeLength: simTrucks[0].route?.length || 0,
+          firstRouteNode: simTrucks[0].route?.[0],
+          ubicacionActual: simTrucks[0].ubicacionActual
+        } : null
+      });
+    }
+  }, [simTrucks, currentTime, calcularTimerACO, simulacionActiva]);
+
+  useEffect(() => {
+    if (status === "running" && simTrucks.length > 0) {
+      debugTruckData();
+    }
+  }, [debugTruckData, status, simTrucks.length]);
+
   const handleSeleccionarSimulacion = async (sim: any) => {
     resetSimulation();
     setDatosListos(false);
@@ -789,7 +818,7 @@ const MapWithSimulation: React.FC = () => {
       if (!simulacionActiva || status !== "running") return;
 
       try {
-        const timerACO = calcularTimerACO(currentTime, simulacionActiva.diaBase || 1);
+        const timerACO = calcularTimerACO(currentTime);
 
         const averia = {
           id: Date.now(),
@@ -834,6 +863,17 @@ const MapWithSimulation: React.FC = () => {
     },
     [registrarAveria]
   );
+
+  const debugTruckPosition = (trucks : any) => {
+    const timerACO = calcularTimerACO(currentTime);
+    console.log(`🚚 ${trucks.codigo}:`, {
+      timerACO,
+      currentTime,
+      routeLength: trucks.route?.length || 0,
+      ubicacionActual: trucks.ubicacionActual,
+      route: trucks.route?.slice(0,3) || [],
+    });
+  }
 
   // Filtrar pedidos y bloqueos activos según el tiempo de simulación
   const pedidosVisibles = simOrders.filter((p) => p.horaDeInicio <= currentTime && !p.entregado);
@@ -1098,57 +1138,78 @@ const MapWithSimulation: React.FC = () => {
           {showTrucks &&
             Array.isArray(simTrucks) &&
             simTrucks.map((truck) => {
-              // 🔥 Encontrar posición actual basada en currentTime
-              const timerACO = calcularTimerACO(currentTime, simulacionActiva?.diaBase || 1);
-
-              // Buscar el nodo de ruta actual
-              let posicionActual = null;
-              if (truck.route && Array.isArray(truck.route)) {
-                posicionActual = truck.route.find(
-                  (nodo: any) =>
-                    nodo.startTime <= timerACO && timerACO <= (nodo.arriveTime || nodo.endTime)
-                );
+              if (!truck.codigo && !truck.id) {
+                console.warn("Camión sin código o ID:", truck);
+                return null;
               }
 
-              // Si no hay posición en ruta, usar ubicación actual
-              if (!posicionActual && truck.ubicacionActual) {
-                posicionActual = truck.ubicacionActual;
+              const timerACO = calcularTimerACO(currentTime);
+              
+              // Verificar si tenemos datos válidos
+              if (!truck.route || truck.route.length === 0) {
+                // Solo mostrar si tiene ubicación actual
+                if (truck.ubicacionActual) {
+                  return (
+                    <MapTruckAnimated
+                      key={truck.codigo || truck.id}
+                      id={truck.id?.toString() || truck.codigo}
+                      codigo={truck.codigo}
+                      route={[truck.ubicacionActual]}
+                      currentTime={timerACO}
+                      ubicacionActual={truck.ubicacionActual}
+                      status={truck.enAveria ? 'broken' : 'available'}
+                      capacity={truck.carga || 10}
+                      currentLoad={truck.cargaAsignada || 0}
+                      glpDisponible={truck.glpDisponible || 0}
+                      enAveria={truck.enAveria || false}
+                      selected={selectedElement === (truck.codigo || truck.id?.toString())}
+                      onClick={setSelectedElement}
+                      zoomLevel={zoomLevel}
+                      mapPosition={mapPosition}
+                      animationSpeed={truckAnimationSpeed} // 🎯 Pasar velocidad de animación
+                    />
+                  );
+                }
+                return null;
               }
-
-              if (!posicionActual) return null;
 
               return (
-                <div
+                <MapTruckAnimated
                   key={truck.codigo || truck.id}
-                  className={`absolute z-25 group cursor-pointer transition-all duration-300 ${getTruckColor(
-                    truck.codigo
-                  )} border-2 border-white shadow-lg rounded-full`}
-                  style={{
-                    left: `${(posicionActual.x * 40 + mapPosition.x) * zoomLevel}px`,
-                    bottom: `${(posicionActual.y * 40 + mapPosition.y) * zoomLevel}px`,
-                    width: `${24 * zoomLevel}px`,
-                    height: `${24 * zoomLevel}px`,
-                    transform: "translate(-50%, 50%)",
-                  }}
-                  title={`${truck.codigo} - Carga: ${truck.cargaAsignada || 0}/${
-                    truck.carga || truck.capacidadGLP
-                  }`}
-                  onClick={() => setSelectedElement(truck.codigo)}
-                >
-                  {/* Indicador de pedidos asignados */}
-                  {truck.pedidosAsignados?.length > 0 && (
-                    <div className="absolute -top-2 -left-2 w-4 h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                      {truck.pedidosAsignados.length}
-                    </div>
-                  )}
-
-                  {/* Indicador de avería */}
-                  {truck.enAveria && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  )}
-                </div>
+                  id={truck.id?.toString() || truck.codigo}
+                  codigo={truck.codigo}
+                  route={truck.route}
+                  currentTime={timerACO}
+                  ubicacionActual={truck.ubicacionActual}
+                  status={truck.enAveria ? 'broken' : 'in_route'}
+                  capacity={truck.carga || 10}
+                  currentLoad={truck.cargaAsignada || 0}
+                  glpDisponible={truck.glpDisponible || 0}
+                  enAveria={truck.enAveria || false}
+                  selected={selectedElement === (truck.codigo || truck.id?.toString())}
+                  onClick={setSelectedElement}
+                  zoomLevel={zoomLevel}
+                  mapPosition={mapPosition}
+                  animationSpeed={truckAnimationSpeed} // 🎯 Pasar velocidad de animación
+                />
               );
             })}
+
+            
+
+            // 10. CONTROL DE VELOCIDAD DE ANIMACIÓN (agregar después del TimerInfo)
+            {simulacionActiva && datosListos && showSpeedControl && (
+              <div className="mb-4">
+                <AnimationSpeedControl
+                  speed={animationSpeed}
+                  onSpeedChange={setAnimationSpeed}
+                  isPlaying={status === "running"}
+                  onTogglePlay={toggleSimulation}
+                />
+              </div>
+            )}
+
+
           {/* Pedidos */}
           {showOrders &&
             pedidosVisibles.map((order) => (
@@ -1190,9 +1251,16 @@ const MapWithSimulation: React.FC = () => {
                 <span>Simulación activa</span>
               </div>
             )}
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-gray-500" />
+              <span>ACO: {calcularTimerACO(currentTime).toFixed(0)}</span>
+            </div>
           </div>
           <div className="text-gray-500">
-            Camiones: {simTrucks.length} • Pedidos: {pedidosVisibles.length}
+            {(() => {
+              const stats = getTruckStats();
+              return `Camiones: ${stats.total} • En ruta: ${stats.enRuta} • Averiados: ${stats.averiados} • Pedidos: ${pedidosVisibles.length}`;
+            })()}
           </div>
         </div>
       </div>
@@ -1311,6 +1379,13 @@ const MapWithSimulation: React.FC = () => {
           <RotateCcw size={16} />
         </button>
       </div>
+      <TruckDebugPanel
+        trucks={simTrucks || []}
+        currentTime={currentTime}
+        timerACO={calcularTimerACO(currentTime)}
+        isVisible={showDebugPanel}
+        onToggle={() => setShowDebugPanel(!showDebugPanel)}
+      />
     </div>
   );
 };
